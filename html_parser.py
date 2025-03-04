@@ -15,7 +15,7 @@ test_lines = [
     "</body>"
 ]
 
-def parse_exercise(ln: str):
+def parse_exercise(ln: str) -> str:
     """
     Parse exercise from a line.
     :param ln: line in a workout file
@@ -46,6 +46,7 @@ def parse_exercise(ln: str):
     result = result.replace('.', '')
 
     # Some manual replacement.
+    result = result.replace(';', ',')
     result = result.replace('barbell', 'bb')
     result = result.replace('dumbbell', 'db')
     result = result.replace('ez bar', 'ezbar')
@@ -69,23 +70,46 @@ def parse_exercise(ln: str):
     result = result.strip()
     return result
 
+
+def strip_line(ln: str) -> str:
+    """
+    Strip comments and undesirable characters from a line of exercise sets.
+    :param ln: line to strip
+    :return: stripped line
+    """
+    # TODO there are some malformed lines with bad characters (like semicolons)
+    # that this doesn't work for.
+    result = ""
+    ln = ln.replace('at', '@')
+    valid_chars = '1234567890@,.~+x;'
+
+    for char in ln:
+        if char in valid_chars:
+            result += char
+    return result
+
+
 if __name__ == '__main__':
     with open('my_workouts.html', 'r') as f:
         parsing_exercises = False
 
         # for line in test_lines:
-        for line in f.readlines():
+        for line_num, line in enumerate(f.readlines(), start=1):
             line = line.lower()
             if line.__contains__("<body>"):
                 parsing_exercises = True
             elif line.__contains__("</body>"):
                 parsing_exercises = False
 
-            # Lines with exercises are structured like this: exercise : sets
+            # Lines with exercises are structured like this: "exercise : sets"
             if parsing_exercises and line.__contains__(':'):
                 exercise = parse_exercise(line)
                 exercises.add(exercise)
                 line_exercise_dict[line] = exercise
+
+                sets = strip_line(line[line.index(':'):])
+                print(f"{line_num}  {exercise}: {sets}")
+
                 if exercise not in exercise_set_dict:
                     exercise_set_dict[exercise] = 1
                 else:
@@ -98,6 +122,6 @@ if __name__ == '__main__':
     # for line, exercise in line_exercise_dict.items():
     #     print(f"{line} : {exercise}")
 
-    sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: ele[1], reverse = True)}
-    for k, v in sorted_dict.items():
-        print(f"{k}: {v}")
+    # sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: ele[1], reverse = True)}
+    # for k, v in sorted_dict.items():
+    #     print(f"{k}: {v}")
