@@ -1,4 +1,4 @@
-class Set:
+class ExerciseSet:
     """A set of an exercise."""
     def __init__(self, exercise: str, reps: int, weight: float, partial_reps: bool):
         self.exercise = exercise

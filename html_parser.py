@@ -1,5 +1,5 @@
 # Set storing all unique exercises
-from set import Set
+from exerciseset import ExerciseSet
 
 exercises = set()
 
@@ -79,11 +79,10 @@ def strip_line(ln: str) -> str:
     :param ln: line to strip
     :return: stripped line
     """
-    # TODO there are some malformed lines with bad characters (like semicolons)
-    # that this doesn't work for.
     result = ""
     ln = ln.replace('at', '@')
-    valid_chars = '1234567890@,.+x;'
+    ln = ln.replace(';', ',')
+    valid_chars = '1234567890@,.+x'
 
     for char in ln:
         if char in valid_chars:
@@ -114,13 +113,20 @@ def parse_sets(exercise: str, sets_str: str):
             else:
                 partial_reps = False
 
+            # Could have '+' like "4+2@60"
+            if reps.__contains__('+'):
+                temp_reps = 0
+                for some_reps in reps.split('+'):
+                    temp_reps += int(some_reps)
+                reps = temp_reps
+
             sets = int(sets)
             for _ in range(sets):
-                s = Set(exercise=exercise, reps=int(reps), weight=float(weight), partial_reps=partial_reps)
+                s = ExerciseSet(exercise=exercise, reps=int(reps), weight=float(weight), partial_reps=partial_reps)
                 print(f"    Set: {s}")
         # TODO parse parts that only contain reps.
         else:
-            print("  No @ symbol, skipping for now.")
+            print("    No @ symbol, skipping for now.")
 
 
 if __name__ == '__main__':
