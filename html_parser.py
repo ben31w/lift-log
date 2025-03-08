@@ -1,4 +1,6 @@
 # Set storing all unique exercises
+from set import Set
+
 exercises = set()
 
 # dictionary storing exercise as key and number of workouts it's been in as value (change to number of sets later)
@@ -81,7 +83,7 @@ def strip_line(ln: str) -> str:
     # that this doesn't work for.
     result = ""
     ln = ln.replace('at', '@')
-    valid_chars = '1234567890@,.~+x;'
+    valid_chars = '1234567890@,.+x;'
 
     for char in ln:
         if char in valid_chars:
@@ -89,8 +91,40 @@ def strip_line(ln: str) -> str:
     return result
 
 
+def parse_sets(exercise: str, sets_str: str):
+    print(f"Parsing sets from ({exercise}) {sets_str}")
+    parts = sets_str.split(",")
+    for part in parts:
+        print(f"  Parsing part {part}")
+
+        # Parse strings like "10@65", "~8@70", or "2x3@75"
+        if part.__contains__('@'):
+            sets_x_reps, weight = part.split('@')
+
+            if sets_x_reps.__contains__('x'):
+                sets, reps = sets_x_reps.split('x')
+            else:
+                sets = 1
+                reps = sets_x_reps
+
+            # '~' indicates partial reps. Remove this, but note that the set contains partial reps.
+            if reps.__contains__('~'):
+                partial_reps = True
+                reps = reps[1:]
+            else:
+                partial_reps = False
+
+            sets = int(sets)
+            for _ in range(sets):
+                s = Set(exercise=exercise, reps=int(reps), weight=float(weight), partial_reps=partial_reps)
+                print(f"    Set: {s}")
+        # TODO parse parts that only contain reps.
+        else:
+            print("  No @ symbol, skipping for now.")
+
+
 if __name__ == '__main__':
-    with open('my_workouts.html', 'r') as f:
+    with open('my_workouts_lite.html', 'r') as f:
         parsing_exercises = False
 
         # for line in test_lines:
@@ -103,12 +137,14 @@ if __name__ == '__main__':
 
             # Lines with exercises are structured like this: "exercise : sets"
             if parsing_exercises and line.__contains__(':'):
+                print(line_num, line.strip())
                 exercise = parse_exercise(line)
                 exercises.add(exercise)
                 line_exercise_dict[line] = exercise
 
-                sets = strip_line(line[line.index(':'):])
-                print(f"{line_num}  {exercise}: {sets}")
+                sets_str = strip_line(line[line.index(':'):])
+                parse_sets(exercise, sets_str)
+                print()
 
                 if exercise not in exercise_set_dict:
                     exercise_set_dict[exercise] = 1
