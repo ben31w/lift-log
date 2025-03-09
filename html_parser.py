@@ -91,15 +91,19 @@ def parse_sets(exercise: str, sets_str: str):
     print(f"Parsing sets from ({exercise}) {sets_str}")
 
     first_split = sets_str.split("@")  # '10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90'
-    second_split = []  # '10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90'
-    for part in first_split:
+    second_split = [first_split[0]]  # '10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90'
+    for part in first_split[1:]:  # we don't want to split something like '3x10,14' IF IT'S FIRST.
         subparts = part.split(',', maxsplit=1)
         for subpart in subparts:
             second_split.append(subpart)
 
     for i in range(0, len(second_split), 2):
         the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
-        weight = float(second_split[i+1])  # 65 70 ... 90
+        try:
+            weight = float(second_split[i+1])  # 65 70 ... 90
+        except ValueError:
+            print(f"SKIPPING MALFORMED SECTION: {second_split[i]}@{second_split[i+1]}")
+            continue
         print(f"  {the_sets}@{weight}")
 
         # To get all the sets associated with this weight, first split by comma.
@@ -123,7 +127,7 @@ def parse_sets(exercise: str, sets_str: str):
 
 
 if __name__ == '__main__':
-    with open('my_workouts_lite.html', 'r') as f:
+    with open('my_workouts.html', 'r') as f:
         parsing_exercises = False
 
         for line_num, line in enumerate(f.readlines(), start=1):
