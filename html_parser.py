@@ -1,21 +1,12 @@
 # Set storing all unique exercises
+from functools import partial
+
 from exerciseset import ExerciseSet
 
 exercises = set()
 
 # dictionary storing exercise as key and number of workouts it's been in as value (change to number of sets later)
 exercise_set_dict = {}
-
-# dictionary storing file line as key and exercise as value (for debug use)
-line_exercise_dict = {}
-
-# For quick debug use. Can add problematic lines or edge cases for quick testing
-test_lines = [
-    "<body>",
-    "<li>Pull ups (everything is taken :/ ): 14,10<br></li>",
-    "<li>bb rows (o) (hyp) : 10,10,7+2 at 115<br></li>",
-    "</body>"
-]
 
 def parse_exercise(ln: str) -> str:
     """
@@ -91,49 +82,50 @@ def strip_line(ln: str) -> str:
 
 
 def parse_sets(exercise: str, sets_str: str):
+    """
+    Given an exercise and sets string, create ExerciseSet objects.
+    :param exercise:  example: 'bench'
+    :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
+    :return:
+    """
     print(f"Parsing sets from ({exercise}) {sets_str}")
-    parts = sets_str.split(",")
-    for part in parts:
-        print(f"  Parsing part {part}")
 
-        # Parse strings like "10@65", "~8@70", or "2x3@75"
-        if part.__contains__('@'):
-            sets_x_reps, weight = part.split('@')
+    first_split = sets_str.split("@")  # '10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90'
+    second_split = []  # '10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90'
+    for part in first_split:
+        subparts = part.split(',', maxsplit=1)
+        for subpart in subparts:
+            second_split.append(subpart)
 
-            if sets_x_reps.__contains__('x'):
-                sets, reps = sets_x_reps.split('x')
-            else:
-                sets = 1
-                reps = sets_x_reps
+    for i in range(0, len(second_split), 2):
+        the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
+        weight = float(second_split[i+1])  # 65 70 ... 90
+        print(f"  {the_sets}@{weight}")
 
-            # '~' indicates partial reps. Remove this, but note that the set contains partial reps.
-            if reps.__contains__('~'):
-                partial_reps = True
-                reps = reps[1:]
-            else:
-                partial_reps = False
+        # To get all the sets associated with this weight, first split by comma.
+        for the_set in the_sets.split(","):
+            # Now check for 'x', which indicates multiple sets with the same reps
+            if the_set.__contains__('x'):  # ex: '2x2'
+                num_sets, num_reps = the_set.split('x')
+            else:  # ex: '10'
+                num_sets = 1
+                num_reps = the_set
 
-            # Could have '+' like "4+2@60"
-            if reps.__contains__('+'):
-                temp_reps = 0
-                for some_reps in reps.split('+'):
-                    temp_reps += int(some_reps)
-                reps = temp_reps
+            # Lastly, need to account for '~' (partial reps) and '+' (disjoint reps)
+            partial_reps = num_reps.__contains__('~')
+            num_reps.replace('~', '')
 
-            sets = int(sets)
-            for _ in range(sets):
-                s = ExerciseSet(exercise=exercise, reps=int(reps), weight=float(weight), partial_reps=partial_reps)
-                print(f"    Set: {s}")
-        # TODO parse parts that only contain reps.
-        else:
-            print("    No @ symbol, skipping for now.")
+            actual_num_reps = sum([int(r) for r in num_reps.split('+')])  # "5+1" = 6
+
+            for i in range(int(num_sets)):
+                s = ExerciseSet(exercise=exercise, reps=actual_num_reps, weight=weight, partial_reps=partial_reps)
+                print(f"    {s}")
 
 
 if __name__ == '__main__':
     with open('my_workouts_lite.html', 'r') as f:
         parsing_exercises = False
 
-        # for line in test_lines:
         for line_num, line in enumerate(f.readlines(), start=1):
             line = line.lower()
             if line.__contains__("<body>"):
@@ -146,7 +138,6 @@ if __name__ == '__main__':
                 print(line_num, line.strip())
                 exercise = parse_exercise(line)
                 exercises.add(exercise)
-                line_exercise_dict[line] = exercise
 
                 sets_str = strip_line(line[line.index(':'):])
                 parse_sets(exercise, sets_str)
@@ -160,9 +151,6 @@ if __name__ == '__main__':
     # for exercise in sorted(exercises):
     #     print(exercise)
     print(f"{len(exercises)} unique exercises found.")
-
-    # for line, exercise in line_exercise_dict.items():
-    #     print(f"{line} : {exercise}")
 
     # sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: ele[1], reverse = True)}
     # for k, v in sorted_dict.items():
