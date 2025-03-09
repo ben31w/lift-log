@@ -90,40 +90,63 @@ def parse_sets(exercise: str, sets_str: str):
     """
     print(f"Parsing sets from ({exercise}) {sets_str}")
 
+    if sets_str.__contains__('@'):
+        parse_weighted_sets(exercise, sets_str)
+    else:
+        get_exercise_sets(0, sets_str)  # parse body weight sets.
+
+
+def parse_weighted_sets(exercise: str, sets_str: str):
+    """
+    Given an exercise and sets string, create ExerciseSet objects.
+    :param exercise:  example: 'bench'
+    :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
+    :return:
+    """
+    # It might be nice to use tuples instead of enumerating every item like this.
     first_split = sets_str.split("@")  # '10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90'
     second_split = [first_split[0]]  # '10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90'
-    for part in first_split[1:]:  # we don't want to split something like '3x10,14' IF IT'S FIRST.
+    for part in first_split[1:]:  # don't split by comma for the first item. The first item always indicates reps (not weight)
         subparts = part.split(',', maxsplit=1)
         for subpart in subparts:
             second_split.append(subpart)
 
+    # At this point, second_split should have 'setsxreps' 'weight' ... repeated
+    # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
+    if len(second_split) % 2 != 0:
+        print(f"SKIPPING MALFORMED SECTION.")
+        return
+
     for i in range(0, len(second_split), 2):
         the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
         try:
-            weight = float(second_split[i+1])  # 65 70 ... 90
+            weight = float(second_split[i + 1])  # 65 70 ... 90
         except ValueError:
-            print(f"SKIPPING MALFORMED SECTION: {second_split[i]}@{second_split[i+1]}")
+            print(f"SKIPPING MALFORMED SECTION: {second_split[i]}@{second_split[i + 1]}")
             continue
         print(f"  {the_sets}@{weight}")
+        get_exercise_sets(weight, the_sets)
 
-        # To get all the sets associated with this weight, first split by comma.
-        for the_set in the_sets.split(","):
-            # Now check for 'x', which indicates multiple sets with the same reps
-            if the_set.__contains__('x'):  # ex: '2x2'
-                num_sets, num_reps = the_set.split('x')
-            else:  # ex: '10'
-                num_sets = 1
-                num_reps = the_set
 
-            # Lastly, need to account for '~' (partial reps) and '+' (disjoint reps)
-            partial_reps = num_reps.__contains__('~')
-            num_reps.replace('~', '')
+def get_exercise_sets(weight: float, the_sets: str):
+    # To get all the sets associated with this weight, first split by comma.
+    for the_set in the_sets.split(","):
+        # Now check for 'x', which indicates multiple sets with the same reps
+        if the_set.__contains__('x'):  # ex: '2x2'
+            num_sets, num_reps = the_set.split('x')
+        else:  # ex: '10'
+            num_sets = 1
+            num_reps = the_set
 
-            actual_num_reps = sum([int(r) for r in num_reps.split('+')])  # "5+1" = 6
+        # Lastly, need to account for '~' (partial reps) and '+' (disjoint reps)
+        partial_reps = num_reps.__contains__('~')
+        num_reps.replace('~', '')
 
-            for i in range(int(num_sets)):
-                s = ExerciseSet(exercise=exercise, reps=actual_num_reps, weight=weight, partial_reps=partial_reps)
-                print(f"    {s}")
+        actual_num_reps = sum([int(r) for r in num_reps.split('+')])  # "5+1" = 6
+
+        for i in range(int(num_sets)):
+            s = ExerciseSet(exercise=exercise, reps=actual_num_reps, weight=weight, partial_reps=partial_reps)
+            print(f"    {s}")
 
 
 if __name__ == '__main__':
