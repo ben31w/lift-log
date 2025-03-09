@@ -1,11 +1,9 @@
-# Set storing all unique exercises
-from functools import partial
-
 from exerciseset import ExerciseSet
 
+# Set storing all unique exercises
 exercises = set()
 
-# dictionary storing exercise as key and number of workouts it's been in as value (change to number of sets later)
+# dictionary storing exercise as key and number of workouts it's been in as value (TODO change to number of sets later)
 exercise_set_dict = {}
 
 def parse_exercise(ln: str) -> str:
@@ -78,7 +76,9 @@ def strip_line(ln: str) -> str:
     for char in ln:
         if char in valid_chars:
             result += char
-    return result
+
+    # TODO If there are comments in the line, attempt to remove them by finding the first numeric character.
+    return result.strip()
 
 
 def parse_sets(exercise: str, sets_str: str):
@@ -88,12 +88,12 @@ def parse_sets(exercise: str, sets_str: str):
     :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
     :return:
     """
-    print(f"Parsing sets from ({exercise}) {sets_str}")
+    print(f"Parsing sets, exercise='{exercise}' sets_str='{sets_str}'")
 
     if sets_str.__contains__('@'):
         parse_weighted_sets(exercise, sets_str)
     else:
-        get_exercise_sets(0, sets_str)  # parse body weight sets.
+        get_exercise_sets(exercise, 0, sets_str)  # parse body weight sets.
 
 
 def parse_weighted_sets(exercise: str, sets_str: str):
@@ -114,7 +114,7 @@ def parse_weighted_sets(exercise: str, sets_str: str):
     # At this point, second_split should have 'setsxreps' 'weight' ... repeated
     # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
     if len(second_split) % 2 != 0:
-        print(f"SKIPPING MALFORMED SECTION.")
+        print(f"SKIPPING, THIS SYNTAX SET ISN'T SUPPORTED.")
         return
 
     for i in range(0, len(second_split), 2):
@@ -122,13 +122,13 @@ def parse_weighted_sets(exercise: str, sets_str: str):
         try:
             weight = float(second_split[i + 1])  # 65 70 ... 90
         except ValueError:
-            print(f"SKIPPING MALFORMED SECTION: {second_split[i]}@{second_split[i + 1]}")
+            print(f"SKIPPING, FAILED TO PARSE WEIGHT: {second_split[i]}@{second_split[i + 1]}")
             continue
         print(f"  {the_sets}@{weight}")
-        get_exercise_sets(weight, the_sets)
+        get_exercise_sets(exercise, weight, the_sets)
 
 
-def get_exercise_sets(weight: float, the_sets: str):
+def get_exercise_sets(exercise: str, weight: float, the_sets: str):
     # To get all the sets associated with this weight, first split by comma.
     for the_set in the_sets.split(","):
         # Now check for 'x', which indicates multiple sets with the same reps
@@ -167,7 +167,10 @@ if __name__ == '__main__':
                 exercises.add(exercise)
 
                 sets_str = strip_line(line[line.index(':'):])
-                parse_sets(exercise, sets_str)
+                if sets_str == "":
+                    print("SKIPPING, NO SETS TO LOG.")
+                else:
+                    parse_sets(exercise, sets_str)
                 print()
 
                 if exercise not in exercise_set_dict:
