@@ -11,8 +11,8 @@ exercise_set_dict = {}
 def parse_exercise(ln: str) -> str:
     """
     Parse exercise from a line.
-    :param ln: line in a workout file
-    :return:  exercise name in the line
+    :param ln: line in a workout file.   Ex: <li>Rear delt rows SS1 : 3x15 at 12.5<br></li>
+    :return:  exercise name in the line. Ex: 'rear delt row'
     """
     result = ln.split(':')[0]
 
@@ -47,7 +47,7 @@ def parse_exercise(ln: str) -> str:
     result = result.replace('hex bar', 'hexbar')
     result = result.replace('hexbar', 'hb')
     # Going with singular names instead of plural for now.
-    # Probably want a better way of aliasing exercises though.
+    # TODO Probably want a better way of aliasing exercises.
     result = result.replace('triceps', 'tricep')
     result = result.replace('tricep', 'tri')
     result = result.replace('curls', 'curl')
@@ -64,11 +64,12 @@ def parse_exercise(ln: str) -> str:
     return result
 
 
-def strip_line(ln: str) -> str:
+def sanitize_sets(ln: str) -> str:
     """
-    Strip comments and undesirable characters from a line of exercise sets.
-    :param ln: line to strip
-    :return: stripped line
+    Given the portion of a workout line indicating the sets, strip comments and
+    undesirable characters.
+    :param ln: raw string of exercise sets.  Ex:  12 at 60, 2x9 at 70<br></li>
+    :return: sanitized sets string.          Ex: 12@60,2x9@70
     """
     result = ""
     ln = ln.replace('at', '@')
@@ -109,7 +110,7 @@ def parse_weighted_sets(exercise: str, sets_str: str):
     :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
     :return:
     """
-    # It might be nice to use tuples instead of enumerating every item like this.
+    # Split sets_str into a list with format [setsxreps, wt, setsxreps, wt, ... ]  # TODO it might be nice to use tuples
     first_split = sets_str.split("@")  # '10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90'
     second_split = [first_split[0]]  # '10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90'
     for part in first_split[1:]:  # don't split by comma for the first item. The first item always indicates reps (not weight)
@@ -120,7 +121,7 @@ def parse_weighted_sets(exercise: str, sets_str: str):
     # At this point, second_split should have 'setsxreps' 'weight' ... repeated
     # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
     if len(second_split) % 2 != 0:
-        print(f"SKIPPING, THIS SYNTAX SET ISN'T SUPPORTED.")
+        print(f"SKIPPING, THIS SET STRING HAS INVALID SYNTAX.")
         return
 
     for i in range(0, len(second_split), 2):
@@ -135,6 +136,14 @@ def parse_weighted_sets(exercise: str, sets_str: str):
 
 
 def get_exercise_sets(exercise: str, weight: float, the_sets: str):
+    """
+    Given strings indicating an exercise, weight, and sets performed at that weight,
+    create ExerciseSet objects.
+    :param exercise: 'bench'
+    :param weight:   90.0
+    :param the_sets: '2x2,~1'
+    :return: TODO ExerciseSet objects
+    """
     # To get all the sets associated with this weight, first split by comma.
     for the_set in the_sets.split(","):
         # Now check for 'x', which indicates multiple sets with the same reps
@@ -174,7 +183,7 @@ if __name__ == '__main__':
                 exercise = parse_exercise(line)
                 exercises.add(exercise)
 
-                sets_str = strip_line(line[line.index(':'):])
+                sets_str = sanitize_sets(line[line.index(':'):])
                 if sets_str == "":
                     print("SKIPPING, NO SETS TO LOG.")
                 else:
