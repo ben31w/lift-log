@@ -1,3 +1,5 @@
+import math
+
 from exerciseset import ExerciseSet
 
 # Set storing all unique exercises
@@ -72,12 +74,16 @@ def strip_line(ln: str) -> str:
     ln = ln.replace('at', '@')
     ln = ln.replace(';', ',')
     valid_chars = '1234567890@,.+x'
+    nums_found = False
 
     for char in ln:
-        if char in valid_chars:
+        # some lines start with comments that we don't care about.
+        # Attempt to remove them by scanning for the first number or '~'.
+        if char.isnumeric() or char == '~':
+            nums_found = True
+        if nums_found and char in valid_chars:
             result += char
 
-    # TODO If there are comments in the line, attempt to remove them by finding the first numeric character.
     return result.strip()
 
 
@@ -138,11 +144,13 @@ def get_exercise_sets(exercise: str, weight: float, the_sets: str):
             num_sets = 1
             num_reps = the_set
 
-        # Lastly, need to account for '~' (partial reps) and '+' (disjoint reps)
+        # Account for '~' (partial reps)
         partial_reps = num_reps.__contains__('~')
         num_reps.replace('~', '')
 
-        actual_num_reps = sum([int(r) for r in num_reps.split('+')])  # "5+1" = 6
+        # Account for '+' (disjoint reps).  ex: 5+1 => 6
+        # Also, account for half reps indicated by decimal point. ex: 4.5 => 4
+        actual_num_reps = sum([math.trunc(float(r)) for r in num_reps.split('+')])  # "5+1" = 6
 
         for i in range(int(num_sets)):
             s = ExerciseSet(exercise=exercise, reps=actual_num_reps, weight=weight, partial_reps=partial_reps)
@@ -170,7 +178,10 @@ if __name__ == '__main__':
                 if sets_str == "":
                     print("SKIPPING, NO SETS TO LOG.")
                 else:
-                    parse_sets(exercise, sets_str)
+                    try:
+                        parse_sets(exercise, sets_str)
+                    except ValueError:
+                        print("ABORTING REST OF LINE BECAUSE OF VALUEERROR.")
                 print()
 
                 if exercise not in exercise_set_dict:
