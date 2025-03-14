@@ -90,26 +90,27 @@ def sanitize_sets(ln: str) -> str:
 
 def parse_sets(exercise: str, sets_str: str):
     """
-    Given an exercise and sets string, create ExerciseSet objects.
+    Given an exercise and sets string, get ExerciseSet objects.
     :param exercise:  example: 'bench'
     :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
-    :return:
+    :return: all ExerciseSet objects that can be parsed from the inputs.
     """
     print(f"Parsing sets, exercise='{exercise}' sets_str='{sets_str}'")
-
     if sets_str.__contains__('@'):
-        parse_weighted_sets(exercise, sets_str)
+        return parse_weighted_sets(exercise, sets_str)
     else:
-        get_exercise_sets(exercise, 0, sets_str)  # parse body weight sets.
+        return get_exercise_sets(exercise, 0, sets_str)  # parse body weight sets.
 
 
 def parse_weighted_sets(exercise: str, sets_str: str):
     """
-    Given an exercise and sets string, create ExerciseSet objects.
+    Given an exercise and sets string, get ExerciseSet objects.
     :param exercise:  example: 'bench'
     :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
-    :return:
+    :return:  all ExerciseSet objects that can be parsed from the inputs.
     """
+    exercise_sets = []
+
     # Split sets_str into a list with format [setsxreps, wt, setsxreps, wt, ... ]  # TODO it might be nice to use tuples
     first_split = sets_str.split("@")  # '10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90'
     second_split = [first_split[0]]  # '10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90'
@@ -122,7 +123,7 @@ def parse_weighted_sets(exercise: str, sets_str: str):
     # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
     if len(second_split) % 2 != 0:
         print(f"SKIPPING, THIS SET STRING HAS INVALID SYNTAX.")
-        return
+        return []
 
     for i in range(0, len(second_split), 2):
         the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
@@ -132,41 +133,50 @@ def parse_weighted_sets(exercise: str, sets_str: str):
             print(f"SKIPPING, FAILED TO PARSE WEIGHT: {second_split[i]}@{second_split[i + 1]}")
             continue
         print(f"  {the_sets}@{weight}")
-        get_exercise_sets(exercise, weight, the_sets)
+        exercise_sets += get_exercise_sets(exercise, weight, the_sets)
+
+    return exercise_sets
 
 
 def get_exercise_sets(exercise: str, weight: float, the_sets: str):
     """
-    Given strings indicating an exercise, weight, and sets performed at that weight,
+    Given an exercise, weight, and string of the sets performed at that weight,
     create ExerciseSet objects.
     :param exercise: 'bench'
     :param weight:   90.0
     :param the_sets: '2x2,~1'
-    :return: TODO ExerciseSet objects
+    :return: list of ExerciseSet objects
     """
-    # To get all the sets associated with this weight, first split by comma.
+    exercise_sets = []
+
     for the_set in the_sets.split(","):
-        # Now check for 'x', which indicates multiple sets with the same reps
+        # Check for 'x', which indicates multiple sets with the same reps
         if the_set.__contains__('x'):  # ex: '2x2'
-            num_sets, num_reps = the_set.split('x')
-        else:  # ex: '10'
+            setsxreps = the_set.split('x')
+            num_sets = int(setsxreps[0])
+            reps = setsxreps[1]
+        else:  # ex: '~1'
             num_sets = 1
-            num_reps = the_set
+            reps = the_set
 
         # Account for '~' (partial reps)
-        partial_reps = num_reps.__contains__('~')
-        num_reps.replace('~', '')
+        partial_reps = reps.__contains__('~')
+        reps.replace('~', '')
 
         # Account for '+' (disjoint reps).  ex: 5+1 => 6
         # Also, account for half reps indicated by decimal point. ex: 4.5 => 4
-        actual_num_reps = sum([math.trunc(float(r)) for r in num_reps.split('+')])  # "5+1" = 6
+        num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
 
-        for i in range(int(num_sets)):
-            s = ExerciseSet(exercise=exercise, reps=actual_num_reps, weight=weight, partial_reps=partial_reps)
+        for i in range(num_sets):
+            s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps)
             print(f"    {s}")
+            exercise_sets.append(s)
+
+    return exercise_sets
 
 
 if __name__ == '__main__':
+    print("---PARSING SETS FROM FILE---")
     with open('my_workouts.html', 'r') as f:
         parsing_exercises = False
 
@@ -188,20 +198,21 @@ if __name__ == '__main__':
                     print("SKIPPING, NO SETS TO LOG.")
                 else:
                     try:
-                        parse_sets(exercise, sets_str)
+                        ex_sets = parse_sets(exercise, sets_str)
+                        if exercise not in exercise_set_dict:
+                            exercise_set_dict[exercise] = len(ex_sets)
+                        else:
+                            exercise_set_dict[exercise] += len(ex_sets)
                     except ValueError:
                         print("ABORTING REST OF LINE BECAUSE OF VALUEERROR.")
                 print()
 
-                if exercise not in exercise_set_dict:
-                    exercise_set_dict[exercise] = 1
-                else:
-                    exercise_set_dict[exercise] += 1
-
     # for exercise in sorted(exercises):
     #     print(exercise)
     print(f"{len(exercises)} unique exercises found.")
+    print()
 
-    # sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: ele[1], reverse = True)}
-    # for k, v in sorted_dict.items():
-    #     print(f"{k}: {v}")
+    print("---# OF SETS LOGGED FOR EACH EXERCISE---")
+    sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: ele[1], reverse = True)}
+    for k, v in sorted_dict.items():
+        print(f"{k}: {v}")
