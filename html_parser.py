@@ -5,7 +5,8 @@ from exerciseset import ExerciseSet
 # Set storing all unique exercises
 exercises = set()
 
-# dictionary storing exercise as key and number of workouts it's been in as value (TODO change to number of sets later)
+# key = exercise
+# value = list of ExerciseSet objects associated with the exercise
 exercise_set_dict = {}
 
 def parse_exercise(ln: str) -> str:
@@ -206,9 +207,9 @@ if __name__ == '__main__':
                         if len(ex_sets) > 6:
                             print("WARNING, LOTS OF SETS FOUND")
                         if exercise not in exercise_set_dict:
-                            exercise_set_dict[exercise] = len(ex_sets)
+                            exercise_set_dict[exercise] = ex_sets
                         else:
-                            exercise_set_dict[exercise] += len(ex_sets)
+                            exercise_set_dict[exercise] += ex_sets
                     except ValueError:
                         print("ABORTING REST OF LINE BECAUSE OF VALUEERROR.")
                 print()
@@ -219,6 +220,6 @@ if __name__ == '__main__':
     print()
 
     print("---# OF SETS LOGGED FOR EACH EXERCISE---")
-    sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: ele[1], reverse = True)}
+    sorted_dict = {key:val for key, val in sorted(exercise_set_dict.items(), key = lambda ele: len(ele[1]), reverse = True)}
     for k, v in sorted_dict.items():
-        print(f"{k}: {v}")
+        print(f"{k}: {len(v)}")
