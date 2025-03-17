@@ -1,3 +1,4 @@
+from datetime import date
 import math
 
 from exerciseset import ExerciseSet
@@ -93,21 +94,22 @@ def sanitize_sets(ln: str) -> str:
     return result.strip()
 
 
-def parse_sets(exercise: str, sets_str: str):
+def parse_sets(exercise: str, sets_str: str, date_of_sets: date):
     """
     Given an exercise and sets string, get ExerciseSet objects.
     :param exercise:  example: 'bench'
     :param sets_str:  example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
+    :param date_of_sets:  the date these sets were performed (as a Python date object)
     :return: all ExerciseSet objects that can be parsed from the inputs.
     """
     print(f"Parsing sets, exercise='{exercise}' sets_str='{sets_str}'")
     if sets_str.__contains__('@'):
-        return parse_weighted_sets(exercise, sets_str)
+        return parse_weighted_sets(exercise, sets_str, date_of_sets)
     else:
-        return get_exercise_sets(exercise, 0, sets_str)  # parse body weight sets.
+        return get_exercise_sets(exercise, 0, sets_str, date_of_sets)  # parse body weight sets.
 
 
-def parse_weighted_sets(exercise: str, sets_str: str):
+def parse_weighted_sets(exercise: str, sets_str: str, date_of_sets: date):
     """
     Given an exercise and sets string, get ExerciseSet objects.
     :param exercise:  example: 'bench'
@@ -138,12 +140,12 @@ def parse_weighted_sets(exercise: str, sets_str: str):
             print(f"SKIPPING, FAILED TO PARSE WEIGHT: {second_split[i]}@{second_split[i + 1]}")
             continue
         print(f"  {the_sets}@{weight}")
-        exercise_sets += get_exercise_sets(exercise, weight, the_sets)
+        exercise_sets += get_exercise_sets(exercise, weight, the_sets, date_of_sets)
 
     return exercise_sets
 
 
-def get_exercise_sets(exercise: str, weight: float, the_sets: str):
+def get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets: date):
     """
     Given an exercise, weight, and string of the sets performed at that weight,
     create ExerciseSet objects.
@@ -173,7 +175,7 @@ def get_exercise_sets(exercise: str, weight: float, the_sets: str):
         num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
 
         for i in range(num_sets):
-            s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps)
+            s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps, date=date_of_sets)
             print(f"    {s}")
             exercise_sets.append(s)
 
@@ -184,6 +186,7 @@ if __name__ == '__main__':
     print("---PARSING SETS FROM FILE---")
     with open('my_workouts.html', 'r') as f:
         parsing_exercises = False
+        curr_date = date.today()
 
         for line_num, line in enumerate(f.readlines(), start=1):
             line = line.lower()
@@ -192,30 +195,41 @@ if __name__ == '__main__':
             elif line.__contains__("</body>"):
                 parsing_exercises = False
 
-            # Lines with exercises are structured like this: "exercise : sets"
-            if parsing_exercises and line.__contains__(':'):
-                print(line_num, line.strip())
-                exercise = parse_exercise(line)
-                exercises.add(exercise)
-
-                sets_str = sanitize_sets(line[line.index(':'):])
-                if sets_str == "":
-                    print("SKIPPING, NO SETS TO LOG.")
-                else:
+            if parsing_exercises:
+                # h2 always contains the date
+                if line.__contains__("<h2>"):
                     try:
-                        ex_sets = parse_sets(exercise, sets_str)
-                        if len(ex_sets) > 6:
-                            print("WARNING, LOTS OF SETS FOUND")
-                        if exercise not in exercise_set_dict:
-                            exercise_set_dict[exercise] = ex_sets
-                        else:
-                            exercise_set_dict[exercise] += ex_sets
+                        # Remove h2 tags, split by "/", and convert to int to get M/D/Y
+                        month, day, year = [int(item) for item in line[len("<h2>") : len(line) - len("</h2>") - 1].split("/", 3)]
+                        if year < 2000:  # Sometimes year is formatted with only two digits.
+                            year += 2000
+                        curr_date = date(year, month, day)
+                        print(f"CURR DATE: {curr_date}")
                     except ValueError:
-                        print("ABORTING REST OF LINE BECAUSE OF VALUEERROR.")
-                print()
+                        print(f"FAILED TO PARSE DATE FROM {line_num}, {line[len("<h2>") : len(line) - len("</h2>")]}")
 
-    # for exercise in sorted(exercises):
-    #     print(exercise)
+                # Lines with exercises are structured like this: "exercise : sets"
+                elif line.__contains__(':'):
+                    print(line_num, line.strip())
+                    exercise = parse_exercise(line)
+                    exercises.add(exercise)
+
+                    sets_str = sanitize_sets(line[line.index(':'):])
+                    if sets_str == "":
+                        print("SKIPPING, NO SETS TO LOG.")
+                    else:
+                        try:
+                            ex_sets = parse_sets(exercise, sets_str, curr_date)
+                            if len(ex_sets) > 6:
+                                print("WARNING, LOTS OF SETS FOUND")
+                            if exercise not in exercise_set_dict:
+                                exercise_set_dict[exercise] = ex_sets
+                            else:
+                                exercise_set_dict[exercise] += ex_sets
+                        except ValueError:
+                            print("ABORTING REST OF LINE BECAUSE OF VALUEERROR.")
+                    print()
+
     print(f"{len(exercises)} unique exercises found.")
     print()
 

@@ -1,13 +1,17 @@
+from datetime import date
+
+
 class ExerciseSet:
     """A set of an exercise."""
-    def __init__(self, exercise: str, reps: int, weight: float, partial_reps: bool):
+    def __init__(self, exercise: str, reps: int, weight: float, partial_reps: bool, date: date):
         self.exercise = exercise
         self.reps = reps
         self.weight = weight
         self.partial_reps = partial_reps
+        self.date = date
 
 
     def __str__(self):
         if self.weight == 0:
             return f"{self.exercise}: {self.reps}"
-        return f"{self.exercise}: {self.reps}@{self.weight}"
+        return f"{self.exercise}: {self.reps}@{self.weight}  ({self.date})"
