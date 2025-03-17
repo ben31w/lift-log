@@ -71,6 +71,10 @@ def sanitize_sets(ln: str) -> str:
     :param ln: raw string of exercise sets.  Ex:  12 at 60, 2x9 at 70<br></li>
     :return: sanitized sets string.          Ex: 12@60,2x9@70
     """
+    # Skip drop sets (for now?)
+    if ln.__contains__('drop'):
+        return ""
+
     result = ""
     ln = ln.replace('at', '@')
     ln = ln.replace(';', ',')
@@ -199,6 +203,8 @@ if __name__ == '__main__':
                 else:
                     try:
                         ex_sets = parse_sets(exercise, sets_str)
+                        if len(ex_sets) > 6:
+                            print("WARNING, LOTS OF SETS FOUND")
                         if exercise not in exercise_set_dict:
                             exercise_set_dict[exercise] = len(ex_sets)
                         else:
