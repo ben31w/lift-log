@@ -1,5 +1,6 @@
 from datetime import date
 import math
+from typing import Dict
 
 from exerciseset import ExerciseSet
 
@@ -16,7 +17,7 @@ class HtmlParser:
         
         # key = exercise
         # value = list of ExerciseSet objects associated with the exercise
-        self.exercise_set_dict = {}
+        self.exercise_set_dict: Dict[str, list[ExerciseSet]] = {}
 
         self.parse_html_file(html_filepath)
 
@@ -28,7 +29,7 @@ class HtmlParser:
             curr_date = date.today()
 
             for line_num, line in enumerate(f.readlines(), start=1):
-                line = line.lower()
+                line = line.lower().strip()
                 if line.__contains__("<body>"):
                     parsing_exercises = True
                 elif line.__contains__("</body>"):
@@ -38,20 +39,22 @@ class HtmlParser:
                     # h2 always contains the date
                     if line.__contains__("<h2>"):
                         try:
-                            # Remove h2 tags, split by "/", and convert to int to get M/D/Y
-                            month, day, year = [int(item) for item in
-                                                line[len("<h2>"): len(line) - len("</h2>") - 1].split("/", 3)]
+                            # Remove h2 tags, and split at the first space.
+                            # This should leave the date part of the string, which
+                            # can be split by / to get M,D,Y
+                            date_part = line[len("<h2>") : len(line) - len("</h2>")].split(" ")[0]
+                            month, day, year = [int(item) for item in date_part.split("/", 3)]
                             if year < 2000:  # Sometimes year is formatted with only two digits.
                                 year += 2000
                             curr_date = date(year, month, day)
                             print(f"CURR DATE: {curr_date}")
                         except ValueError:
                             print(
-                                f"FAILED TO PARSE DATE FROM {line_num}, {line[len("<h2>"): len(line) - len("</h2>")]}")
+                                f"FAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'")
 
                     # Lines with exercises are structured like this: "exercise : sets"
                     elif line.__contains__(':'):
-                        print(line_num, line.strip())
+                        print(line_num, line)
                         exercise = self.parse_exercise(line)
                         self.exercises.add(exercise)
 

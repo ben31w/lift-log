@@ -12,6 +12,18 @@ class ExerciseSet:
 
 
     def __str__(self):
+        """
+        Return a string representation of this set.
+        :return: exercise: reps@WT (date)
+        """
         if self.weight == 0:
-            return f"{self.exercise}: {self.reps}"
+            return f"{self.exercise}: {self.reps} ({self.date})"
         return f"{self.exercise}: {self.reps}@{self.weight}  ({self.date})"
+
+
+    def simple_str(self):
+        """
+        Return a simple string representation of this set
+        :return: reps@WT
+        """
+        return f"{self.reps}@{self.weight}" if self.weight != 0 else f"{self.reps}"

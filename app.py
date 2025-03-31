@@ -1,5 +1,7 @@
+from datetime import date
 from tkinter import *
 from tkinter import ttk
+from typing import Dict
 
 from html_parser import HtmlParser
 
@@ -44,8 +46,21 @@ class LiftLogGUI:
 
         to_insert = ""
         list_sets = self.html_parser.exercise_set_dict[selected_exercise]
+        date_sets_dict: Dict[date, str] = {}
+
+        # Build dict from list of sets
+        print("filtering sets")
         for the_set in list_sets:
-            to_insert += str(the_set) + "\n"
+            the_date = the_set.date
+            print(the_set)
+            if the_date not in date_sets_dict.keys():
+                date_sets_dict[the_date] = the_set.simple_str()
+            else:
+                date_sets_dict[the_date] += f", {the_set.simple_str()}"
+
+        # Build string from dict
+        for the_date, set_string in date_sets_dict.items():
+            to_insert += f"{the_date}\n{set_string}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
 
