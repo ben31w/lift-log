@@ -18,7 +18,7 @@ class ExerciseSet:
         """
         if self.weight == 0:
             return f"{self.exercise}: {self.reps} ({self.date})"
-        return f"{self.exercise}: {self.reps}@{self.weight}  ({self.date})"
+        return f"{self.exercise}: {self.reps}@{self.truncate_weight()}  ({self.date})"
 
 
     def simple_str(self):
@@ -26,4 +26,15 @@ class ExerciseSet:
         Return a simple string representation of this set
         :return: reps@WT
         """
-        return f"{self.reps}@{self.weight}" if self.weight != 0 else f"{self.reps}"
+        return f"{self.reps}@{self.truncate_weight()}" if self.weight != 0 else f"{self.reps}"
+
+
+    def truncate_weight(self):
+        """
+        If this set's weight is an integer, return it as an integer.
+        Otherwise, return the weight as is (as a float).
+        """
+        if self.weight == int(self.weight):
+            return int(self.weight)
+        else:
+            return self.weight

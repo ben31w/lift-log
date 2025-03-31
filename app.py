@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import ttk
 from typing import Dict
 
+from exerciseset import ExerciseSet
 from html_parser import HtmlParser
 
 class LiftLogGUI:
@@ -44,23 +45,53 @@ class LiftLogGUI:
         selected_exercise = self.combobox.get()
         self.text_area.delete("1.0", END)  # Clear existing text
 
-        to_insert = ""
+        to_insert = ""  # Everything to insert in the text area
         list_sets = self.html_parser.exercise_set_dict[selected_exercise]
-        date_sets_dict: Dict[date, str] = {}
+        date_sets_list_dict: Dict[date, list[ExerciseSet]] = {}  # {2024-10-10: [set1, set2]}
 
         # Build dict from list of sets
-        print("filtering sets")
+        print("\nfiltering sets")
         for the_set in list_sets:
             the_date = the_set.date
             print(the_set)
-            if the_date not in date_sets_dict.keys():
-                date_sets_dict[the_date] = the_set.simple_str()
-            else:
-                date_sets_dict[the_date] += f", {the_set.simple_str()}"
 
-        # Build string from dict
-        for the_date, set_string in date_sets_dict.items():
-            to_insert += f"{the_date}\n{set_string}\n\n"
+            if the_date not in date_sets_list_dict.keys():
+                # Filter list of sets to this date. Add this list to the dict.
+                sets_by_date = [s for s in list_sets if s.date == the_date]
+                date_sets_list_dict[the_date] = sets_by_date
+            else:
+                continue  # This date has already been processed.
+
+        # Go through each date in the dict, and build the string to insert.
+        # This reverse engineers the sets into a format mor similar to how they
+        # were originally logged. Ex: date: [8@200, 8@200, 6@210] -> "date\n 2x8@200, 6@210"
+        for d,l in date_sets_list_dict.items():
+            date_sets_str = f"{d}\n"
+            for i in range(len(l)):
+                curr_set = l[i]
+                # first set. The " 1x" will get removed later, but it's necessary to include for processing the next set
+                if i == 0:
+                    date_sets_str += f" 1x{curr_set.simple_str()}"
+                else:
+                    prev_set = l[i-1]
+                    # Increment number in front of 'x'
+                    if prev_set.simple_str() == curr_set.simple_str():
+                        last_part = date_sets_str.rsplit(" ", 1)[1]
+                        pre_x, post_x = last_part.rsplit("x", 1)
+                        num_sets = int(pre_x[len(pre_x) - 1])  # take digit in front of 'x' (this won't work for multiple digits)
+                        new_part = f"{pre_x[:len(pre_x) - 1]}{num_sets + 1}x{post_x}"
+                        date_sets_str = date_sets_str.replace(last_part, new_part)
+                    # Keep weight from the last set, but add new number of reps
+                    elif prev_set.weight == curr_set.weight:
+                        last_part = date_sets_str.rsplit(" ", 1)[1]
+                        pre_at, post_at = last_part.split("@")
+                        new_part = f"{pre_at},1x{curr_set.reps}@{post_at}"
+                        date_sets_str = date_sets_str.replace(last_part, new_part)
+                    # Completely new weight, append the set to the end
+                    else:
+                        date_sets_str += f", 1x{curr_set.simple_str()}"
+            date_sets_str = date_sets_str.replace("1x", "")
+            to_insert += f"{date_sets_str}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
 
