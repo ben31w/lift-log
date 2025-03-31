@@ -145,6 +145,9 @@ class FilterExercisesPage(ttk.Frame):
 
         # Go through each date in the dict, and build the string to insert.
         for d,l in date_sets_list_dict.items():
+            # for s in l:
+            #     print(s, end=' ')
+            # print()
             to_insert += f"{build_date_sets_string(d, l)}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
