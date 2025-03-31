@@ -45,36 +45,77 @@ def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> s
     return date_sets_str
 
 
-class LiftLogGUI:
-    def __init__(self, root: Tk):
-        root.title("Lift Log")
+def pad_frame(frame: ttk.Frame):
+    """
+    Add padding to each widget inside a frame. Call this after the frame's
+    widgets have been initialized and placed inside the frame.
+    :param frame:
+    :return:
+    """
+    for child in frame.winfo_children():
+        child.grid_configure(padx=5, pady=5)
 
-        # Main Frame widget
-        frm = ttk.Frame(root, padding=10)
-        frm.grid(row=0, column=0, sticky=NSEW)
+
+class LiftLogGUI(Tk):
+    def __init__(self, *args, **kwargs):
+        Tk.__init__(self, *args, **kwargs)
+        self.title("Lift Log")
 
         self.html_parser = HtmlParser('my_workouts.html')
 
-        # Create widgets
-        ttk.Label(frm, text="My Sets").grid(row=0, column=0)
+        # the container is where we'll stack a bunch of frames
+        # on top of each other, then the one we want visible
+        # will be raised above the others
+        container = ttk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
 
-        row1 = ttk.Frame(frm)
-        row1.grid(row=1, column=0)
-        ttk.Label(row1, text="Exercise").pack(side=LEFT)
+        self.frames = {}
+        for F in (FilterExercisesPage, AllExercisesPage):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self, html_parser=self.html_parser)
+            self.frames[page_name] = frame
+
+            # put all the pages in the same location;
+            # the one on the top of the stacking order
+            # will be the one that is visible.
+            frame.grid(row=0, column=0, sticky=NSEW)
+
+        self.show_frame("FilterExercisesPage")
+
+    def show_frame(self, page_name):
+        """Show a frame for the given page name"""
+        frame = self.frames[page_name]
+        frame.tkraise()
+
+
+class FilterExercisesPage(ttk.Frame):
+    def __init__(self, parent, controller, html_parser : HtmlParser):
+        ttk.Frame.__init__(self, parent)
+
+        self.controller = controller
+        self.html_parser = html_parser
+
+        btn_display_all = ttk.Button(self, text="Display All", command=lambda: controller.show_frame("AllExercisesPage"))
+        btn_display_all.grid(row=0, column=0, sticky=W)
+
+        lbl_my_sets = ttk.Label(self, text="My Sets")
+        lbl_my_sets.grid(row=1, column=0, sticky=W)
+
+        row2 = ttk.Frame(self)
+        row2.grid(row=2, column=0, sticky=W)
+        lbl_exercise = ttk.Label(row2, text="Exercise")
+        lbl_exercise.pack(side=LEFT)
         exercises = sorted(list(self.html_parser.exercises))
-        self.combobox = ttk.Combobox(row1, values=exercises, width=40)
+        self.combobox = ttk.Combobox(row2, values=exercises, width=40)
         self.combobox.pack(side=RIGHT)
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
 
-        self.text_area = Text(frm, height=24, width=60)
-        self.text_area.grid(row=2, column=0)
+        self.text_area = Text(self, height=24, width=60)
+        self.text_area.grid(row=3, column=0)
 
-        ttk.Button(frm, text="Exit", command=root.destroy).grid(row=3, column=0)
-
-        # Add padding to each widget
-        for child in frm.winfo_children():
-            child.grid_configure(padx=5, pady=5)
-
+        pad_frame(self)
 
     def filter_sets(self, event: Event):
         """
@@ -109,7 +150,22 @@ class LiftLogGUI:
         self.text_area.insert(END, to_insert)  # Update with new text
 
 
+class AllExercisesPage(ttk.Frame):
+    def __init__(self, parent, controller, html_parser: HtmlParser):
+        ttk.Frame.__init__(self, parent)
+
+        self.controller = controller
+        self.html_parser = html_parser
+
+        btn_filter = ttk.Button(self, text="Filter", command=lambda: controller.show_frame("FilterExercisesPage"))
+        btn_filter.grid(row=0, column=0, sticky=W)
+
+        lbl_my_sets = ttk.Label(self, text="My Sets")
+        lbl_my_sets.grid(row=1, column=0, sticky=W)
+
+        pad_frame(self)
+
+
 if __name__ == '__main__':
-    root = Tk()
-    LiftLogGUI(root)
-    root.mainloop()
+    lift_log = LiftLogGUI()
+    lift_log.mainloop()
