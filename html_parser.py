@@ -247,6 +247,9 @@ class HtmlParser:
             # Also, account for half reps indicated by decimal point. ex: 4.5 => 4
             num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
 
+            if num_reps > 100:
+                print(f"WARNING, suspiciously high number of reps {num_reps}.")
+
             for i in range(num_sets):
                 s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps, date=date_of_sets)
                 print(f"    {s}")
