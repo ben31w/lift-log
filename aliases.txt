@@ -4,15 +4,17 @@
 # Lines starting with '.' indicate the start of an alias group.
 # Lines with text are an exercise name.
 # The first exercise name following the '.' is the common name to be used.
+# (the common exercise can be on the same line as '.')
 # Blank lines are ignored.
 
-.
-ab crunch machine
+.ab crunch machine
 ab machine
 
-.
-back ext
+.back ext
 back extension
 back extension extension
 back extension machine
 bes
+
+.bb squats
+squats

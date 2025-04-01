@@ -19,6 +19,10 @@ class HtmlParser:
         # value = list of ExerciseSet objects associated with the exercise
         self.exercise_set_dict: Dict[str, list[ExerciseSet]] = {}
 
+        # Some variables used when creating the alias dict
+        self.next_exercise_is_common = False
+        self.curr_common_name = ""
+
         # key = exercise name
         # value = an equivalent common exercise name that is equivalent to the key
         self.alias_dict: Dict[str, str] = {}
@@ -29,23 +33,25 @@ class HtmlParser:
 
     def parse_alias_file(self, alias_filepath : str):
         """Parse alias txt file, and populate the alias dictionary."""
-        next_exercise_is_common = False
-
         with open(alias_filepath, 'r') as f:
             for line in f.readlines():
                 line = line.strip()
                 if line.startswith('#') or line == '':
                     continue
                 elif line.startswith('.'):
-                    next_exercise_is_common = True
-                    # TODO attempt to parse rest of line? This assumes '.' will always appear on its own line
+                    self.next_exercise_is_common = True
+                    if len(line) > 1:
+                        self.add_exercise_to_alias_dict(exercise=line[1:])
                 else:
-                    exercise = line
-                    if next_exercise_is_common:
-                        curr_common_name = exercise
-                        next_exercise_is_common = False
-                        continue
-                    self.alias_dict[exercise] = curr_common_name
+                    self.add_exercise_to_alias_dict(exercise=line)
+
+    def add_exercise_to_alias_dict(self, exercise : str):
+        # If this exercise is the common name, set some variables, but don't add anything to the dict.
+        if self.next_exercise_is_common:
+            self.curr_common_name = exercise
+            self.next_exercise_is_common = False
+            return
+        self.alias_dict[exercise] = self.curr_common_name
 
     def parse_html_file(self, html_file_path : str):
         print("---PARSING SETS FROM FILE---")
