@@ -9,12 +9,27 @@
 
 .ab crunch machine
 ab machine
+abs machine
+
+.arnold press
+arnold
 
 .back ext
 back extension
 back extension extension
 back extension machine
 bes
+
+.bb bench
+bench
+bench press
+bp
+
+.bb row overhand
+bb row o
+
+.bb row underhand
+bb row u
 
 .bb squats
 squats
