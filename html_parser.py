@@ -249,6 +249,8 @@ class HtmlParser:
 
             if num_reps > 100:
                 print(f"WARNING, suspiciously high number of reps {num_reps}.")
+                print("These sets won't be added.")
+                break
 
             for i in range(num_sets):
                 s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps, date=date_of_sets)
