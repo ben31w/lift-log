@@ -3,6 +3,10 @@ from tkinter import *
 from tkinter import ttk
 from typing import Dict
 
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.dates as mdates
+from matplotlib.figure import Figure
+
 from exerciseset import ExerciseSet
 from html_parser import HtmlParser
 
@@ -112,8 +116,10 @@ class FilterExercisesPage(ttk.Frame):
         self.combobox.pack(side=RIGHT)
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
 
-        self.text_area = Text(self, height=24, width=60)
-        self.text_area.grid(row=3, column=0)
+        self.row3 = ttk.Frame(self)
+        self.row3.grid(row=3, column=0, sticky=W)
+        self.text_area = Text(self.row3, height=24, width=30)
+        self.text_area.grid(row=0, column=0, sticky=W)
 
         pad_frame(self)
 
@@ -151,6 +157,37 @@ class FilterExercisesPage(ttk.Frame):
             to_insert += f"{build_date_sets_string(d, l)}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
+        self.show_plot()
+
+    def show_plot(self):
+        # Shows a simple total load plot for now
+        selected_exercise = self.combobox.get()
+        list_sets = self.html_parser.exercise_set_dict[selected_exercise]
+
+        fig = Figure()
+        ax = fig.add_subplot(111)
+        fig.suptitle(f"Total Load Over Time")
+
+        x = [s.date for s in list_sets]
+        y = [s.reps * s.weight for s in list_sets]
+
+        # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
+        start_date = min(x)
+        end_date = max(x)
+        interval = int((end_date - start_date).days / 10) + 1
+
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%y-%m-%d'))
+        ax.set_xlim(left=start_date, right=end_date)
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+        # Rotates and right-aligns the x labels so they don't crowd each other.
+        for label in ax.get_xticklabels(which='major'):
+            label.set(rotation=30, horizontalalignment='right')
+
+        ax.scatter(x, y, marker='o')
+
+        canvas = FigureCanvasTkAgg(fig, self.row3)
+        canvas.draw()  # I guess this renders the figure? Idk if it's needed
+        canvas.get_tk_widget().grid(row=0, column=1)
 
 
 class AllExercisesPage(ttk.Frame):
