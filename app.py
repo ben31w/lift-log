@@ -61,7 +61,7 @@ class LiftLogGUI(Tk):
         Tk.__init__(self, *args, **kwargs)
         self.title("Lift Log")
 
-        self.html_parser = HtmlParser('my_workouts.html')
+        self.html_parser = HtmlParser('my_workouts.html', 'aliases.txt')
 
         # the container is where we'll stack a bunch of frames
         # on top of each other, then the one we want visible

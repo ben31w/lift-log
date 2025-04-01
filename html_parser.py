@@ -7,11 +7,11 @@ from exerciseset import ExerciseSet
 
 class HtmlParser:
     """
-     This class takes an HTML file containing exercise sets and tracks 
-     information about the sets.
-     """
+    This class takes an HTML file containing exercise sets and tracks
+    information about the sets.
+    """
     
-    def __init__(self, html_filepath: str):
+    def __init__(self, html_filepath : str, alias_filepath : str=None):
         # Set storing all unique exercises
         self.exercises = set()
         
@@ -19,10 +19,35 @@ class HtmlParser:
         # value = list of ExerciseSet objects associated with the exercise
         self.exercise_set_dict: Dict[str, list[ExerciseSet]] = {}
 
+        # key = exercise name
+        # value = an equivalent common exercise name that is equivalent to the key
+        self.alias_dict: Dict[str, str] = {}
+        if alias_filepath is not None:
+            self.parse_alias_file(alias_filepath)
+
         self.parse_html_file(html_filepath)
 
+    def parse_alias_file(self, alias_filepath : str):
+        """Parse alias txt file, and populate the alias dictionary."""
+        next_exercise_is_common = False
 
-    def parse_html_file(self, html_file_path: str):
+        with open(alias_filepath, 'r') as f:
+            for line in f.readlines():
+                line = line.strip()
+                if line.startswith('#') or line == '':
+                    continue
+                elif line.startswith('.'):
+                    next_exercise_is_common = True
+                    # TODO attempt to parse rest of line? This assumes '.' will always appear on its own line
+                else:
+                    exercise = line
+                    if next_exercise_is_common:
+                        curr_common_name = exercise
+                        next_exercise_is_common = False
+                        continue
+                    self.alias_dict[exercise] = curr_common_name
+
+    def parse_html_file(self, html_file_path : str):
         print("---PARSING SETS FROM FILE---")
         with open(html_file_path, 'r') as f:
             parsing_exercises = False
@@ -136,6 +161,11 @@ class HtmlParser:
         result = result.replace('deadlifts', 'deadlift')
 
         result = result.strip()
+
+        # Check if this exercise is in the alias dict. If so, use the common name
+        if result in self.alias_dict.keys():
+            result = self.alias_dict[result]
+
         return result
 
 
@@ -261,4 +291,4 @@ class HtmlParser:
 
 
 if __name__ == '__main__':
-    html_parser = HtmlParser('my_workouts.html')
+    html_parser = HtmlParser('my_workouts.html', 'aliases.txt')

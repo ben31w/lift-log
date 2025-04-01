@@ -1,0 +1,18 @@
+# ALIAS FILE
+# This file can be used to resolve multiple exercise name to one common name.
+# Lines starting with '#' are comments (comments must be on their own line)
+# Lines starting with '.' indicate the start of an alias group.
+# Lines with text are an exercise name.
+# The first exercise name following the '.' is the common name to be used.
+# Blank lines are ignored.
+
+.
+ab crunch machine
+ab machine
+
+.
+back ext
+back extension
+back extension extension
+back extension machine
+bes
