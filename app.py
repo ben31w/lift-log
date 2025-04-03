@@ -6,6 +6,7 @@ from typing import Dict
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
+from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 
 from exerciseset import ExerciseSet
@@ -102,12 +103,15 @@ class FilterExercisesPage(ttk.Frame):
         self.controller = controller
         self.html_parser = html_parser
 
+        # Container row 0
         btn_display_all = ttk.Button(self, text="Display All", command=lambda: controller.show_frame("AllExercisesPage"))
         btn_display_all.grid(row=0, column=0, sticky=W)
 
+        # Container row 1
         lbl_my_sets = ttk.Label(self, text="My Sets")
         lbl_my_sets.grid(row=1, column=0, sticky=W)
 
+        # Container row 2
         row2 = ttk.Frame(self)
         row2.grid(row=2, column=0, sticky=W)
         lbl_exercise = ttk.Label(row2, text="Exercise")
@@ -117,10 +121,13 @@ class FilterExercisesPage(ttk.Frame):
         self.combobox.pack(side=RIGHT)
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
 
+        # Container row 3
         self.row3 = ttk.Frame(self)
         self.row3.grid(row=3, column=0, sticky=W)
-        self.text_area = Text(self.row3, height=24, width=30)
+        self.text_area = Text(self.row3, height=48, width=30)
         self.text_area.grid(row=0, column=0, sticky=W)
+        self.plot_grid = ttk.Frame(self.row3)  # This frame is a 2x2 grid on row 3
+        self.plot_grid.grid(row=0, column=1)
 
         pad_frame(self)
 
@@ -152,44 +159,56 @@ class FilterExercisesPage(ttk.Frame):
 
         # Go through each date in the dict, and build the string to insert.
         for d,l in date_sets_list_dict.items():
-            # for s in l:
-            #     print(s, end=' ')
-            # print()
             to_insert += f"{build_date_sets_string(d, l)}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
-        self.show_plot()
+        self.show_plot(min_reps=1, max_reps=5, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
+        self.show_plot(min_reps=6, max_reps=8, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+        self.show_plot(min_reps=9, max_reps=11, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
+        self.show_plot(min_reps=12, max_reps=20, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
+        pad_frame(self.row3)
 
-    def show_plot(self):
+    def show_plot(self, min_reps : int, max_reps : int, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
+        """
+        Creates a plot of load over time for the currently selected exercise,
+        using the given min reps, max reps, and map colormap. Place the plot
+        in the plot grid using the given row/column.
+        """
         selected_exercise = self.combobox.get()
-        list_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if s.reps <= 5]
+        list_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if min_reps <= s.reps <= max_reps]
 
         fig = Figure()
         ax = fig.add_subplot(111)
-        fig.suptitle(f"Load Over Time for Sets of 1-5 Reps")
-        x = [s.date for s in list_sets]
-        y = [s.weight for s in list_sets]
-        colors = [s.reps for s in list_sets]
-        cmap = matplotlib.colormaps['viridis']
+        fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps")
 
-        # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
-        start_date = min(x)
-        end_date = max(x)
-        interval = int((end_date - start_date).days / 10) + 1
+        if len(list_sets) == 0:
+            # Currently displays empty graph with weird axis ticks, probably not the behavior we want
+            x, y, colors = [], [], []
+        else:
+            x = [s.date for s in list_sets]
+            y = [s.weight for s in list_sets]
+            colors = [s.reps for s in list_sets]
+
+            # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
+            start_date = min(x)
+            end_date = max(x)
+            interval = int((end_date - start_date).days / 10) + 1
+            ax.set_xlim(left=start_date, right=end_date)
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+
+
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%y-%m-%d'))
-        ax.set_xlim(left=start_date, right=end_date)
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
 
         # Rotates and right-aligns the x labels so they don't crowd each other.
         for label in ax.get_xticklabels(which='major'):
             label.set(rotation=30, horizontalalignment='right')
 
         # Create scatter, and attach it to the canvas
-        scatter = ax.scatter(x, y,c=colors, cmap=cmap, marker='o')
+        scatter = ax.scatter(x, y, c=colors, cmap=cmap, marker='o')
         fig.colorbar(scatter)
-        canvas = FigureCanvasTkAgg(fig, self.row3)
+        canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=1)
+        canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
 
 
 class AllExercisesPage(ttk.Frame):
