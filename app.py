@@ -104,29 +104,23 @@ class FilterExercisesPage(ttk.Frame):
         self.html_parser = html_parser
 
         # Container row 0
-        btn_display_all = ttk.Button(self, text="Display All", command=lambda: controller.show_frame("AllExercisesPage"))
-        btn_display_all.grid(row=0, column=0, sticky=W)
-
-        # Container row 1
-        lbl_my_sets = ttk.Label(self, text="My Sets")
-        lbl_my_sets.grid(row=1, column=0, sticky=W)
-
-        # Container row 2
-        row2 = ttk.Frame(self)
-        row2.grid(row=2, column=0, sticky=W)
-        lbl_exercise = ttk.Label(row2, text="Exercise")
+        row0 = ttk.Frame(self)
+        row0.grid(row=0, column=0, sticky=W)
+        lbl_exercise = ttk.Label(row0, text="Exercise")
         lbl_exercise.pack(side=LEFT)
         exercises = sorted(list(self.html_parser.exercises))
-        self.combobox = ttk.Combobox(row2, values=exercises, width=40)
-        self.combobox.pack(side=RIGHT)
+        self.combobox = ttk.Combobox(row0, values=exercises, width=40)
+        self.combobox.pack(side=LEFT)
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
+        btn_display_all = ttk.Button(row0, text="Display All", command=lambda: controller.show_frame("AllExercisesPage"))
+        btn_display_all.pack(side=LEFT)
 
-        # Container row 3
-        self.row3 = ttk.Frame(self)
-        self.row3.grid(row=3, column=0, sticky=W)
-        self.text_area = Text(self.row3, height=48, width=30)
+        # Container row 1
+        self.row1 = ttk.Frame(self)
+        self.row1.grid(row=1, column=0, sticky=W)
+        self.text_area = Text(self.row1, height=48, width=30)
         self.text_area.grid(row=0, column=0, sticky=W)
-        self.plot_grid = ttk.Frame(self.row3)  # This frame is a 2x2 grid on row 3
+        self.plot_grid = ttk.Frame(self.row1)  # This frame is a 2x2 grid
         self.plot_grid.grid(row=0, column=1)
 
         pad_frame(self)
@@ -166,7 +160,7 @@ class FilterExercisesPage(ttk.Frame):
         self.show_plot(min_reps=6, max_reps=8, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
         self.show_plot(min_reps=9, max_reps=11, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
         self.show_plot(min_reps=12, max_reps=20, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
-        pad_frame(self.row3)
+        pad_frame(self.row1)
 
     def show_plot(self, min_reps : int, max_reps : int, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
         """
@@ -220,9 +214,6 @@ class AllExercisesPage(ttk.Frame):
 
         btn_filter = ttk.Button(self, text="Filter", command=lambda: controller.show_frame("FilterExercisesPage"))
         btn_filter.grid(row=0, column=0, sticky=W)
-
-        lbl_my_sets = ttk.Label(self, text="My Sets")
-        lbl_my_sets.grid(row=1, column=0, sticky=W)
 
         pad_frame(self)
 
