@@ -199,7 +199,7 @@ class FilterExercisesPage(ttk.Frame):
 
         # Create scatter, and attach it to the canvas
         scatter = ax.scatter(x, y, c=colors, cmap=cmap, marker='o')
-        fig.colorbar(scatter)
+        fig.colorbar(scatter, format="%d", ticks=list(range(min_reps, max_reps+1)))
         canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
         canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
