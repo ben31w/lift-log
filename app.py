@@ -120,10 +120,14 @@ class FilterExercisesPage(ttk.Frame):
         self.row1.grid(row=1, column=0, sticky=W)
         self.text_area = Text(self.row1, height=48, width=30)
         self.text_area.grid(row=0, column=0, sticky=W)
+        scrollbar = ttk.Scrollbar(self.row1, command=self.text_area.yview)
+        scrollbar.grid(row=0, column=1, sticky=NSEW)
+        self.text_area['yscrollcommand'] = scrollbar.set
         self.plot_grid = ttk.Frame(self.row1)  # This frame is a 2x2 grid
-        self.plot_grid.grid(row=0, column=1)
+        self.plot_grid.grid(row=0, column=2)
 
         pad_frame(self)
+        pad_frame(self.row1)
 
     def filter_sets(self, event: Event):
         """
