@@ -6,6 +6,7 @@ from typing import Dict
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
+import mplcursors
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 
@@ -203,6 +204,7 @@ class FilterExercisesPage(ttk.Frame):
 
         # Create scatter, and attach it to the canvas
         scatter = ax.scatter(x, y, c=colors, cmap=cmap, marker='o')
+        mplcursors.cursor(scatter)
         fig.colorbar(scatter, format="%d", ticks=list(range(min_reps, max_reps+1)))
         canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
