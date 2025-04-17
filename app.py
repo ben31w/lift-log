@@ -132,10 +132,15 @@ class FilterExercisesPage(ttk.Frame):
 
     def filter_sets(self, event: Event):
         """
-        Filter the text area content to the exercise selected in the combobox.
-        :param event:  Not used
-        :return:
+        When a new exercise is selected in the combobox, filter the sets being
+        displayed in the text area and show new plots.
         """
+        self.update_text_area()
+        self.show_plots()
+
+
+    def update_text_area(self):
+        """Update the text area with dates and sets for the selected exercise."""
         selected_exercise = self.combobox.get()
         self.text_area.delete("1.0", END)  # Clear existing text
 
@@ -157,25 +162,51 @@ class FilterExercisesPage(ttk.Frame):
                 continue  # This date has already been processed.
 
         # Go through each date in the dict, and build the string to insert.
-        for d,l in date_sets_list_dict.items():
+        for d, l in date_sets_list_dict.items():
             to_insert += f"{build_date_sets_string(d, l)}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
-        self.show_plot(min_reps=1, max_reps=5, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
-        self.show_plot(min_reps=6, max_reps=8, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
-        self.show_plot(min_reps=9, max_reps=11, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
-        self.show_plot(min_reps=12, max_reps=20, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
+
+
+    def show_plots(self):
+        """Show plots for the selected exercise."""
+        # Iterate through sets for the selected exercise, and create lists to track
+        # sets at certain rep ranges. Also, the plots look better when they use
+        # a consistent start and end date, so track this as well.
+        selected_exercise = self.combobox.get()
+        sets_1_5 = []
+        sets_6_8 = []
+        sets_9_11 = []
+        sets_12_up = []
+        min_date = date.today()  # TODO is this wanted?
+        max_date = date(year=1900, month=1, day=1)  # TODO is this wanted?
+        for s in self.html_parser.exercise_set_dict[selected_exercise]:
+            if s.reps <= 5:
+                sets_1_5.append(s)
+            elif s.reps <= 8:
+                sets_6_8.append(s)
+            elif s.reps <= 11:
+                sets_9_11.append(s)
+            else:
+                sets_12_up.append(s)
+
+            if s.date < min_date:
+                min_date = s.date
+            if s.date > max_date:
+                max_date = s.date
+
+        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
+        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
+        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
         pad_frame(self.row1)
 
-    def show_plot(self, min_reps : int, max_reps : int, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
-        """
-        Creates a plot of load over time for the currently selected exercise,
-        using the given min reps, max reps, and map colormap. Place the plot
-        in the plot grid using the given row/column.
-        """
-        selected_exercise = self.combobox.get()
-        list_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if min_reps <= s.reps <= max_reps]
 
+    def show_plot(self, list_sets : list[ExerciseSet], min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
+        """
+        Create a plot of load over time for a list of exercise sets, and place
+        it in the plot grid using the given row/column.
+        """
         fig = Figure()
         ax = fig.add_subplot(111)
         fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps")
@@ -189,12 +220,9 @@ class FilterExercisesPage(ttk.Frame):
             colors = [s.reps for s in list_sets]
 
             # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
-            start_date = min(x)
-            end_date = max(x)
             interval = int((end_date - start_date).days / 10) + 1
             ax.set_xlim(left=start_date, right=end_date)
             ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
-
 
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%y-%m-%d'))
 
