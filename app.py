@@ -98,6 +98,10 @@ class LiftLogGUI(Tk):
 
 
 class FilterExercisesPage(ttk.Frame):
+    """
+    A page that lets the user select an exercise and view all the sets they've
+    logged for that exercise and plots depicting load over time.
+    """
     def __init__(self, parent, controller, html_parser : HtmlParser):
         ttk.Frame.__init__(self, parent)
 
@@ -172,14 +176,14 @@ class FilterExercisesPage(ttk.Frame):
         """Show plots for the selected exercise."""
         # Iterate through sets for the selected exercise, and create lists to track
         # sets at certain rep ranges. Also, the plots look better when they use
-        # a consistent start and end date, so track this as well.
+        # a consistent start and end date, so track the earliest and latest dates.
         selected_exercise = self.combobox.get()
         sets_1_5 = []
         sets_6_8 = []
         sets_9_11 = []
         sets_12_up = []
-        min_date = date.today()  # TODO is this wanted?
-        max_date = date(year=1900, month=1, day=1)  # TODO is this wanted?
+        first_date = date.today()
+        last_date = date(year=1900, month=1, day=1)
         for s in self.html_parser.exercise_set_dict[selected_exercise]:
             if s.reps <= 5:
                 sets_1_5.append(s)
@@ -190,22 +194,30 @@ class FilterExercisesPage(ttk.Frame):
             else:
                 sets_12_up.append(s)
 
-            if s.date < min_date:
-                min_date = s.date
-            if s.date > max_date:
-                max_date = s.date
+            if s.date < first_date:
+                first_date = s.date
+            if s.date > last_date:
+                last_date = s.date
 
-        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
-        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
-        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
-        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=min_date, end_date=max_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
+        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
+        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
+        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
         pad_frame(self.row1)
 
 
     def show_plot(self, list_sets : list[ExerciseSet], min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
         """
-        Create a plot of load over time for a list of exercise sets, and place
-        it in the plot grid using the given row/column.
+        Plot load over time for a particular exercise and rep range.
+        :param list_sets:     list of ExerciseSet objects
+        :param min_reps:      minimum reps per set
+        :param max_reps:      maximum reps per set
+        :param start_date:    the start date for this plot
+        :param end_date:      the end date for this plot
+        :param cmap:          colormap to use
+        :param plot_grid_row: row to place this plot within the plot grid
+        :param plot_grid_col: column to place this plot within the plot grid
+        :return:
         """
         fig = Figure()
         ax = fig.add_subplot(111)
@@ -240,6 +252,9 @@ class FilterExercisesPage(ttk.Frame):
 
 
 class AllExercisesPage(ttk.Frame):
+    """
+    A page displaying all the exercise sets. TODO Not implemented yet.
+    """
     def __init__(self, parent, controller, html_parser: HtmlParser):
         ttk.Frame.__init__(self, parent)
 
