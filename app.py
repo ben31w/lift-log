@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 import mplcursors
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
+from tkcalendar import DateEntry
 
 from exerciseset import ExerciseSet
 from html_parser import HtmlParser
@@ -117,8 +118,16 @@ class FilterExercisesPage(ttk.Frame):
         self.combobox = ttk.Combobox(row0, values=exercises, width=40)
         self.combobox.pack(side=LEFT)
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
-        btn_display_all = ttk.Button(row0, text="Display All", command=lambda: controller.show_frame("AllExercisesPage"))
-        btn_display_all.pack(side=LEFT)
+        
+        # Create labels and date entries for the start and end date, but DON'T 
+        # add them to the GUI yet. Wait for the first exercise to be selected.
+        self.dates_visible = False
+        self.lbl_start_date = ttk.Label(row0, text="Start Date")
+        self.date_entry_start = DateEntry(row0, width=12, background='darkblue',
+                                          foreground='white', borderwidth=2)
+        self.lbl_end_date = ttk.Label(row0, text="End Date")
+        self.date_entry_end = DateEntry(row0, width=12, background='darkblue',
+                                        foreground='white', borderwidth=2)
 
         # Container row 1
         self.row1 = ttk.Frame(self)
@@ -139,8 +148,17 @@ class FilterExercisesPage(ttk.Frame):
         When a new exercise is selected in the combobox, filter the sets being
         displayed in the text area and show new plots.
         """
+        if not self.dates_visible:
+            self.lbl_start_date.pack(side=LEFT)
+            self.date_entry_start.pack(side=LEFT)
+            self.lbl_end_date.pack(side=LEFT)
+            self.date_entry_end.pack(side=LEFT)
+            self.dates_visible = True
+            self.date_entry_start.bind("<<DateEntrySelected>>", self.update_plots_on_date_change)
+            self.date_entry_end.bind("<<DateEntrySelected>>", self.update_plots_on_date_change)
+        
         self.update_text_area()
-        self.show_plots()
+        self.show_plots_on_exercise_change()
 
 
     def update_text_area(self):
@@ -172,11 +190,19 @@ class FilterExercisesPage(ttk.Frame):
         self.text_area.insert(END, to_insert)  # Update with new text
 
 
-    def show_plots(self):
-        """Show plots for the selected exercise."""
+    def show_plots_on_exercise_change(self):
+        """
+        When an exercise is selected, show plots for load over time for sets of
+        - 1-5 reps
+        - 6-8 reps
+        - 9-11 reps
+        - 12-10 reps
+        Each plot has a consistent start and end date based on the first and last
+        date found in the list of sets. (the user can then adjust the start and
+        end date to their liking)
+        """
         # Iterate through sets for the selected exercise, and create lists to track
-        # sets at certain rep ranges. Also, the plots look better when they use
-        # a consistent start and end date, so track the earliest and latest dates.
+        # sets at certain rep ranges and the first and last date.
         selected_exercise = self.combobox.get()
         sets_1_5 = []
         sets_6_8 = []
@@ -198,6 +224,9 @@ class FilterExercisesPage(ttk.Frame):
                 first_date = s.date
             if s.date > last_date:
                 last_date = s.date
+
+        self.date_entry_start.set_date(first_date)
+        self.date_entry_end.set_date(last_date)
 
         self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
         self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
@@ -249,6 +278,45 @@ class FilterExercisesPage(ttk.Frame):
         canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
         canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
+
+
+    def update_plots_on_date_change(self, event : Event):
+        """
+        When the start or end date entry is updated, filter the plots to the
+        selected dates.
+        """
+        # TODO refactor, maybe combine with show_plots_on_exercise_change
+        # Iterate through sets for the selected exercise, and create lists to track
+        # sets at certain rep ranges.
+        selected_exercise = self.combobox.get()
+        sets_1_5 = []
+        sets_6_8 = []
+        sets_9_11 = []
+        sets_12_up = []
+        first_date = self.date_entry_start.get_date()
+        last_date = self.date_entry_end.get_date()
+        print("DATE CHANGED!!!", first_date, last_date)
+        date_filtered_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if first_date <= s.date <= last_date]
+        for s in date_filtered_sets:
+            print(s)
+            if s.reps <= 5:
+                sets_1_5.append(s)
+            elif s.reps <= 8:
+                sets_6_8.append(s)
+            elif s.reps <= 11:
+                sets_9_11.append(s)
+            else:
+                sets_12_up.append(s)
+
+        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=first_date, end_date=last_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
+        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=first_date, end_date=last_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=first_date, end_date=last_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
+        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=first_date, end_date=last_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
+        pad_frame(self.row1)
 
 
 class AllExercisesPage(ttk.Frame):
