@@ -11,7 +11,7 @@ from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
-from exerciseset import ExerciseSet
+from exercise_set import ExerciseSet
 from html_parser import HtmlParser
 
 

@@ -2,7 +2,7 @@ from datetime import date
 import math
 from typing import Dict
 
-from exerciseset import ExerciseSet
+from exercise_set import ExerciseSet
 
 
 class HtmlParser:
