@@ -154,11 +154,11 @@ class FilterExercisesPage(ttk.Frame):
             self.lbl_end_date.pack(side=LEFT)
             self.date_entry_end.pack(side=LEFT)
             self.dates_visible = True
-            self.date_entry_start.bind("<<DateEntrySelected>>", self.update_plots_on_date_change)
-            self.date_entry_end.bind("<<DateEntrySelected>>", self.update_plots_on_date_change)
+            self.date_entry_start.bind("<<DateEntrySelected>>", self.show_plots)
+            self.date_entry_end.bind("<<DateEntrySelected>>", self.show_plots)
         
         self.update_text_area()
-        self.show_plots_on_exercise_change()
+        self.show_plots(event)
 
 
     def update_text_area(self):
@@ -190,48 +190,56 @@ class FilterExercisesPage(ttk.Frame):
         self.text_area.insert(END, to_insert)  # Update with new text
 
 
-    def show_plots_on_exercise_change(self):
+    def show_plots(self, event : Event):
+        if event.widget == self.combobox:
+            self._show_plots()
+        if event.widget == self.date_entry_start or event.widget == self.date_entry_end:
+            self._show_plots(start_date=self.date_entry_start.get_date(), end_date=self.date_entry_end.get_date())
+
+
+    def _show_plots(self, start_date : date = None, end_date : date = None):
         """
-        When an exercise is selected, show plots for load over time for sets of
+        Show plots for the selected exercise. The plots are filtered to the given
+        start and end date. If no start or end date is given, then default dates
+        will be found.
+        The plots depict load over time for sets of
         - 1-5 reps
         - 6-8 reps
         - 9-11 reps
-        - 12-10 reps
-        Each plot has a consistent start and end date based on the first and last
-        date found in the list of sets. (the user can then adjust the start and
-        end date to their liking)
+        - 12+ reps
         """
-        # Iterate through sets for the selected exercise, and create lists to track
-        # sets at certain rep ranges and the first and last date.
         selected_exercise = self.combobox.get()
-        sets_1_5 = []
-        sets_6_8 = []
-        sets_9_11 = []
-        sets_12_up = []
-        first_date = date.today()
-        last_date = date(year=1900, month=1, day=1)
-        for s in self.html_parser.exercise_set_dict[selected_exercise]:
-            if s.reps <= 5:
-                sets_1_5.append(s)
-            elif s.reps <= 8:
-                sets_6_8.append(s)
-            elif s.reps <= 11:
-                sets_9_11.append(s)
-            else:
-                sets_12_up.append(s)
 
-            if s.date < first_date:
-                first_date = s.date
-            if s.date > last_date:
-                last_date = s.date
+        # Find default start and end dates if none were provided.
+        if start_date is None:
+            start_date = min([s.date for s in self.html_parser.exercise_set_dict[selected_exercise]])
+        if end_date is None:
+            end_date = max([s.date for s in self.html_parser.exercise_set_dict[selected_exercise]])
+        print(start_date)
+        print(end_date)
+        date_filtered_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if
+                              start_date <= s.date <= end_date]
 
-        self.date_entry_start.set_date(first_date)
-        self.date_entry_end.set_date(last_date)
+        # Get sets of 1-5, 6-8, 9-11, and 12+ reps
+        sets_1_5 =   [s for s in date_filtered_sets if s.reps <= 5]
+        sets_6_8 =   [s for s in date_filtered_sets if 6 <= s.reps <= 8]
+        sets_9_11 =  [s for s in date_filtered_sets if 9 <= s.reps <= 11]
+        sets_12_up = [s for s in date_filtered_sets if s.reps >= 5]
 
-        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
-        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
-        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
-        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=first_date, end_date=last_date, cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
+        # Update date entry widgets (this is necessary for when this function is
+        # called with no start or end date)
+        self.date_entry_start.set_date(start_date)
+        self.date_entry_end.set_date(end_date)
+
+        # Show plots
+        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=start_date, end_date=end_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
+        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=start_date, end_date=end_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=start_date, end_date=end_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
+        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=start_date, end_date=end_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
         pad_frame(self.row1)
 
 
@@ -278,45 +286,6 @@ class FilterExercisesPage(ttk.Frame):
         canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
         canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
-
-
-    def update_plots_on_date_change(self, event : Event):
-        """
-        When the start or end date entry is updated, filter the plots to the
-        selected dates.
-        """
-        # TODO refactor, maybe combine with show_plots_on_exercise_change
-        # Iterate through sets for the selected exercise, and create lists to track
-        # sets at certain rep ranges.
-        selected_exercise = self.combobox.get()
-        sets_1_5 = []
-        sets_6_8 = []
-        sets_9_11 = []
-        sets_12_up = []
-        first_date = self.date_entry_start.get_date()
-        last_date = self.date_entry_end.get_date()
-        print("DATE CHANGED!!!", first_date, last_date)
-        date_filtered_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if first_date <= s.date <= last_date]
-        for s in date_filtered_sets:
-            print(s)
-            if s.reps <= 5:
-                sets_1_5.append(s)
-            elif s.reps <= 8:
-                sets_6_8.append(s)
-            elif s.reps <= 11:
-                sets_9_11.append(s)
-            else:
-                sets_12_up.append(s)
-
-        self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=first_date, end_date=last_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
-        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=first_date, end_date=last_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
-        self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=first_date, end_date=last_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
-        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=first_date, end_date=last_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
-        pad_frame(self.row1)
 
 
 class AllExercisesPage(ttk.Frame):
