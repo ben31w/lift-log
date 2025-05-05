@@ -224,7 +224,7 @@ class FilterExercisesPage(ttk.Frame):
         sets_1_5 =   [s for s in date_filtered_sets if s.reps <= 5]
         sets_6_8 =   [s for s in date_filtered_sets if 6 <= s.reps <= 8]
         sets_9_11 =  [s for s in date_filtered_sets if 9 <= s.reps <= 11]
-        sets_12_up = [s for s in date_filtered_sets if s.reps >= 5]
+        sets_12_up = [s for s in date_filtered_sets if s.reps >= 12]
 
         # Update date entry widgets (this is necessary for when this function is
         # called with no start or end date)
