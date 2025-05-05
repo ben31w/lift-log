@@ -268,10 +268,16 @@ class FilterExercisesPage(ttk.Frame):
             y = [s.weight for s in list_sets]
             colors = [s.reps for s in list_sets]
 
-            # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
-            interval = int((end_date - start_date).days / 10) + 1
-            ax.set_xlim(left=start_date, right=end_date)
-            ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+        # Matplotlib attempts to "automatically expand" the axis limits if they
+        # are the same. This isn't the behavior we want, so there is a check
+        # for identical axis limits.
+        if start_date == end_date:
+            start_date = start_date.replace(day=start_date.day - 1)
+            end_date = end_date.replace(day=end_date.day + 1)
+        # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
+        interval = int((end_date - start_date).days / 10) + 1
+        ax.set_xlim(left=start_date, right=end_date)
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
 
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%y-%m-%d'))
 
