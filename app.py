@@ -15,6 +15,9 @@ from exercise_set import ExerciseSet
 from html_parser import HtmlParser
 
 
+WINDOW_HEIGHT = 1080
+WINDOW_WIDTH = 1700
+
 def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> str:
     """
     Given a date and a list of ExerciseSets performed on that date, create a string
@@ -68,34 +71,21 @@ class LiftLogGUI(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
         self.title("Lift Log")
+        self.geometry(f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}')
 
         self.html_parser = HtmlParser('my_workouts.html', 'aliases.txt')
 
-        # the container is where we'll stack a bunch of frames
-        # on top of each other, then the one we want visible
-        # will be raised above the others
-        container = ttk.Frame(self)
-        container.pack(side="top", fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill='both', expand=True)
 
-        self.frames = {}
-        for F in (FilterExercisesPage, AllExercisesPage):
-            page_name = F.__name__
-            frame = F(parent=container, controller=self, html_parser=self.html_parser)
-            self.frames[page_name] = frame
+        tab_filter_exercises = FilterExercisesPage(self.notebook, self.html_parser)
+        tab_import_exercises = ttk.Frame(self.notebook)
 
-            # put all the pages in the same location;
-            # the one on the top of the stacking order
-            # will be the one that is visible.
-            frame.grid(row=0, column=0, sticky=NSEW)
+        tab_filter_exercises.pack(fill='both', expand=True)
+        tab_import_exercises.pack(fill='both', expand=True)
 
-        self.show_frame("FilterExercisesPage")
-
-    def show_frame(self, page_name):
-        """Show a frame for the given page name"""
-        frame = self.frames[page_name]
-        frame.tkraise()
+        self.notebook.add(tab_filter_exercises, text="My Sets")
+        self.notebook.add(tab_import_exercises, text="Import Sets")
 
 
 class FilterExercisesPage(ttk.Frame):
@@ -103,10 +93,9 @@ class FilterExercisesPage(ttk.Frame):
     A page that lets the user select an exercise and view all the sets they've
     logged for that exercise and plots depicting load over time.
     """
-    def __init__(self, parent, controller, html_parser : HtmlParser):
+    def __init__(self, parent, html_parser : HtmlParser):
         ttk.Frame.__init__(self, parent)
 
-        self.controller = controller
         self.html_parser = html_parser
 
         # Container row 0
@@ -292,22 +281,6 @@ class FilterExercisesPage(ttk.Frame):
         canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
         canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
-
-
-class AllExercisesPage(ttk.Frame):
-    """
-    A page displaying all the exercise sets. TODO Not implemented yet.
-    """
-    def __init__(self, parent, controller, html_parser: HtmlParser):
-        ttk.Frame.__init__(self, parent)
-
-        self.controller = controller
-        self.html_parser = html_parser
-
-        btn_filter = ttk.Button(self, text="Filter", command=lambda: controller.show_frame("FilterExercisesPage"))
-        btn_filter.grid(row=0, column=0, sticky=W)
-
-        pad_frame(self)
 
 
 if __name__ == '__main__':
