@@ -78,20 +78,20 @@ class LiftLogGUI(Tk):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill='both', expand=True)
 
-        tab_filter_exercises = FilterExercisesPage(self.notebook, self.html_parser)
-        tab_import_exercises = ttk.Frame(self.notebook)
+        tab_my_sets = TabMySets(self.notebook, self.html_parser)
+        tab_import_sets = TabImportExercises(self.notebook, self.html_parser)
 
-        tab_filter_exercises.pack(fill='both', expand=True)
-        tab_import_exercises.pack(fill='both', expand=True)
+        tab_my_sets.pack(fill='both', expand=True)
+        tab_import_sets.pack(fill='both', expand=True)
 
-        self.notebook.add(tab_filter_exercises, text="My Sets")
-        self.notebook.add(tab_import_exercises, text="Import Sets")
+        self.notebook.add(tab_my_sets, text="My Sets")
+        self.notebook.add(tab_import_sets, text="Import Sets")
 
 
-class FilterExercisesPage(ttk.Frame):
+class TabMySets(ttk.Frame):
     """
-    A page that lets the user select an exercise and view all the sets they've
-    logged for that exercise and plots depicting load over time.
+    A frame where users can view their exercise sets in list and graph form for
+    a selected exercise.
     """
     def __init__(self, parent, html_parser : HtmlParser):
         ttk.Frame.__init__(self, parent)
@@ -282,6 +282,75 @@ class FilterExercisesPage(ttk.Frame):
         canvas.draw()
         canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
 
+class TabImportExercises(ttk.Frame):
+    """A frame that allows the user to import exercise sets via HTML or Apple Notes."""
+    def __init__(self, parent, html_parser : HtmlParser):
+        ttk.Frame.__init__(self, parent)
+
+        self.html_parser = html_parser
+
+        # Container row 0
+        row0 = ttk.Frame(self)
+        row0.grid(row=0, column=0, sticky=W)
+        lbl_import_methods = ttk.Label(row0, text="Import Methods")
+        lbl_import_methods.pack(side=LEFT)
+
+        # Container row 1
+        row1 = ttk.Frame(self)
+        row1.grid(row=1, column=0, sticky=W)
+
+        frm_html = ttk.Frame(row1)
+        frm_html.grid(row=0, column=0)
+        lbl_via_html = ttk.Label(frm_html, text="Via HTML File")
+        lbl_via_html.grid(row=0, column=0)
+        lbl_via_html_desc = ttk.Label(frm_html, text="You can import exercise sets via an existing HTML file.")
+        lbl_via_html_desc.grid(row=1, column=0)
+        btn_browse = ttk.Button(frm_html, text="Browse")
+        btn_browse.grid(row=2, column=0)
+
+        frm_apple = ttk.Frame(row1)
+        frm_apple.grid(row=0, column=1)
+        lbl_via_apple = ttk.Label(frm_apple, text="Via HTML File")
+        lbl_via_apple.grid(row=0, column=0)
+        lbl_via_apple_desc = ttk.Label(frm_apple, text="You can import exercise sets via Apple Notes.")
+        lbl_via_apple_desc.grid(row=1, column=0)
+        btn_go = ttk.Button(frm_apple, text="Go")
+        btn_go.grid(row=2, column=0)
+
+        # Container row 2
+        row2 = ttk.Frame(self)
+        row2.grid(row=2, column=0, sticky=W)
+        lbl_import_status = ttk.Label(row2, text="Import Status")
+        lbl_import_status.pack(side=LEFT)
+
+        # Container row 3
+        row3 = ttk.Frame(self)
+        row3.grid(row=3, column=0, sticky=W)
+        status_msg_area = Text(row3, height=20, width=170)
+        status_msg_area.grid(row=0, column=0)
+        scrollbar = ttk.Scrollbar(row3, command=status_msg_area.yview)
+        scrollbar.grid(row=0, column=1, sticky=NSEW)
+        status_msg_area['yscrollcommand'] = scrollbar.set
+
+        # Container row 4
+        row4 = ttk.Frame(self)
+        row4.grid(row=4, column=0, sticky=W)
+        lbl_undo_imports_title = ttk.Label(row4, text="Undo Imports")
+        lbl_undo_imports_title.pack(side=LEFT)
+
+        # Container row 5
+        row5 = ttk.Frame(self)
+        row5.grid(row=5, column=0, sticky=W)
+        lbl_undo_imports_desc = ttk.Label(row5,
+                                      text="You can view all your imports and delete them here.")
+        lbl_undo_imports_desc.pack(side=LEFT)
+        # TODO this section will have a table that displays the user's imports.
+        # The table will retreive SQLite data.
+
+        pad_frame(self)
+        pad_frame(row1)
+        pad_frame(frm_html)
+        pad_frame(frm_apple)
 
 if __name__ == '__main__':
     lift_log = LiftLogGUI()
