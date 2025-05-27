@@ -18,6 +18,7 @@ import math
 import sqlite3
 from datetime import date
 from datetime import datetime
+from typing import Dict
 
 from exercise_set import ExerciseSet
 
@@ -200,7 +201,9 @@ class SQLUtility():
 
         return exercise_sets
 
-    def import_sets_via_html(self, html_filepath):
+    def import_sets_via_html(self, html_filepath, alias_filepath):
+        alias_dict = self.parse_alias_file(alias_filepath)
+
         con = sqlite3.connect("personal.db")
         cur = con.cursor()
 
@@ -242,7 +245,7 @@ class SQLUtility():
                     # Lines with exercises are structured like this: "exercise : sets"
                     elif line.__contains__(':'):
                         print(line_num, line)
-                        exercise = self.parse_exercise(line)
+                        exercise = self.parse_exercise(line, alias_dict)
 
                         sets_str = self.sanitize_sets(line[line.index(':'):])
                         if sets_str == "":
@@ -268,7 +271,21 @@ class SQLUtility():
         cur.close()
         con.close()
 
-    def parse_exercise(self, ln: str) -> str:
+    def parse_alias_file(self, alias_filepath: str):
+        """Parse alias txt file, and populate the alias dictionary."""
+        result = {}
+        with open(alias_filepath, 'r') as f:
+            for line in f.readlines():
+                line = line.strip()
+                if line.startswith('#') or line == '':
+                    continue
+                elif line.startswith('.'):
+                    curr_common_name = line[1:]
+                else:
+                    result[line] = curr_common_name
+        return result
+
+    def parse_exercise(self, ln: str, alias_dict: Dict) -> str:
         """
         Parse exercise from a line in an HTML file.
         :param ln: line in a workout file.   Ex: <li>Rear delt rows SS1 : 3x15 at 12.5<br></li>
@@ -322,11 +339,12 @@ class SQLUtility():
 
         result = result.strip()
 
-        # TODO implement alias dict
         # Check if this exercise is in the alias dict. If so, use the common name
-        # if result in self.alias_dict.keys():
-        #     result = self.alias_dict[result]
-
+        if result in alias_dict.keys():
+            # print("UseAlias")
+            result = alias_dict[result]
+        # else:
+        #     print("DontAlias")
         return result
 
 
@@ -362,7 +380,4 @@ class SQLUtility():
 if __name__ == '__main__':
     sql_utility = SQLUtility()
 
-    sql_utility.import_sets_via_html('my_workouts.html')
-
-    print(sql_utility.get_imports())
-    print(sql_utility.get_exercise_sets_dict())
+    sql_utility.import_sets_via_html('my_workouts.html', 'aliases.txt')
