@@ -3,8 +3,6 @@
 # Lines starting with '#' are comments (comments must be on their own line)
 # Lines starting with '.' indicate the start of an alias group.
 # Lines with text are an exercise name.
-# The first exercise name following the '.' is the common name to be used.
-# (the common exercise can be on the same line as '.')
 # Blank lines are ignored.
 
 .ab crunch machine

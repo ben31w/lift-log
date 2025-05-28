@@ -44,7 +44,7 @@ def create_tables():
 
 def get_imports():
     """
-    Retrieve imports from SQLite, and return them as a list of tuples.
+    Retrieve import items from SQLite, and return them as a list of tuples.
     Ex: [(import date, import file, import method), ...]
     """
     con = sqlite3.connect("personal.db")
@@ -61,6 +61,12 @@ def get_exercise_sets_dict():
     Retrieve daily_sets items from SQLite, convert them into ExerciseSet
     objects in Python, and build a dictionary that maps exercises to
     ExerciseSet objects.
+
+    Example conversion from daily_sets to ExerciseSet objects (simplified):
+    '2x8@135,6,5@145' -> 8@135, 8@135, 6@145, 5@145
+
+    The exercise-sets dictionary maps
+    exercise name (string) -> [individual sets associated with the exercise (ExerciseSet objects)]
     """
     print("\nBuilding Exercise-Sets Dictionary")
     con = sqlite3.connect("personal.db")
@@ -70,16 +76,16 @@ def get_exercise_sets_dict():
     result = cur.execute("SELECT exercise, date, string FROM daily_sets")
     all_daily_sets_items = result.fetchall()
     for item in all_daily_sets_items:
-        # print(f'Got an item: {item}')
-        # Convert daily_sets in SQLite to ExerciseSet objects in Python
-        individual_exercise_sets = parse_sets(item)
+        print(f'daily_sets item: {item}')
+        # Convert daily_sets item in SQLite to ExerciseSet objects in Python
+        individual_exercise_sets = get_exercise_sets_from_daily_sets(item)
 
         # Now add those ExerciseSet objects to the dict.
         if individual_exercise_sets:
             if len(individual_exercise_sets) > 6:
                 print("WARNING, LOTS OF SETS FOUND")
             exercise = item[0]
-            if exercise not in exercise_sets_dict:
+            if exercise not in exercise_sets_dict.keys():
                 exercise_sets_dict[exercise] = individual_exercise_sets
             else:
                 exercise_sets_dict[exercise] += individual_exercise_sets
@@ -89,15 +95,31 @@ def get_exercise_sets_dict():
     return exercise_sets_dict
 
 
-def get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets: date):
+def get_exercise_sets_from_daily_sets(daily_sets_item : tuple [str, str, str]):
+    """
+    Given a daily_sets item from SQLite, return a list of ExerciseSet objects.
+    :return: all ExerciseSet objects that can be parsed from the daily_set item.
+    """
+    exercise, date_str, sets_str = daily_sets_item
+    y, m, d = [int(p) for p in date_str.split('-')]
+    date_of_sets = date(year=y, month=m, day=d)
+    if sets_str.__contains__('@'):
+        # These are sets for a typical weighted exercise
+        return _get_weight_and_exercise_sets(exercise, sets_str, date_of_sets)
+    else:
+        # These are bodyweight sets
+        return _get_exercise_sets(exercise, 0, sets_str, date_of_sets)
+
+
+def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets: date):
     """
     This is the method that actually returns the ExerciseSet objects.
-    It takes various components of a daily_sets item.
-    :param exercise:      example: 'bench'
-    :param weight:        example: 90.0
-    :param the_sets:      example: '2x10,~9'
-    :param date_of_sets:  example: 2025/05/27
-    :return: list of ExerciseSet objects
+
+    :param exercise:                        example: 'bb bench'
+    :param weight:                          example: 90.0
+    :param the_sets:                        example: '2x10,~9'
+    :param date_of_sets:                    example: 2025/05/27
+    :return: list of ExerciseSet objects.   example: [(bb bench, 2025/05/27, 10@90.0), (bb bench, 2025/05/27, 10@90.0), (bb bench, 2025/05/27, ~9@90.0)]
     """
     exercise_sets = []
 
@@ -132,13 +154,13 @@ def get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets:
     return exercise_sets
 
 
-def parse_weighted_sets(exercise: str, sets_str: str, date_of_sets: date):
+def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: date):
     """
-    Given all the components of a daily_sets item, get a list of ExerciseSet
-    objects. This function parses the sets_str, delimits it by setsxreps +
-    wt pairs, and calls get_exercise_sets.
+    This function takes all the components of an SQL daily_sets item.
+    It parses the string portion; delimits it by setsxreps + wt pairs; and for
+    each pair, it calls _get_exercise_sets.
 
-    :param exercise:      example: 'bench'
+    :param exercise:      example: 'bb bench'
     :param sets_str:      example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
     :param date_of_sets:  example: 2025/05/27
     :return:  all ExerciseSet objects that can be parsed from the inputs.
@@ -166,7 +188,7 @@ def parse_weighted_sets(exercise: str, sets_str: str, date_of_sets: date):
         try:
             weight = float(second_split[i + 1])  # 65 70 ... 90
             print(f"  {the_sets}@{weight}")
-            exercise_sets += get_exercise_sets(exercise, weight, the_sets, date_of_sets)
+            exercise_sets += _get_exercise_sets(exercise, weight, the_sets, date_of_sets)
         except ValueError:
             print(f"SKIPPING MALFORMED LINE. Double check weight or syntax: {second_split[i]}@{second_split[i + 1]}")
             continue
@@ -174,29 +196,21 @@ def parse_weighted_sets(exercise: str, sets_str: str, date_of_sets: date):
 
     return exercise_sets
 
-
-def parse_sets(daily_sets_item : tuple [str, str, str]):
+def get_alias_dict(alias_filepath: str):
     """
-    Given a daily_sets item from SQLite, return a list of ExerciseSet objects.
-    :return: all ExerciseSet objects that can be parsed from the daily_set item.
+    Return an alias dictionary from the given alias text file.
+
+    The alias dictionary maps
+    alias exercise name (string) -> common exercise name (string)
+
+    If you want 'bb bench' to be the common exercise name, you could have the
+    following mappings:
+    - 'bench' -> 'bb bench'
+    - 'bench press' -> 'bb bench'
+
+    :param alias_filepath: path to alias text file.
+    :return: alias dictionary
     """
-    exercise, date_str, sets_str = daily_sets_item
-    y, m, d = [int(p) for p in date_str.split('-')]
-    date_of_sets = date(year=y, month=m, day=d)
-    print(f"Parsing sets, exercise='{exercise}' sets_str='{sets_str}'")
-    if sets_str.__contains__('@'):
-        # Parse a sets with weight
-        return parse_weighted_sets(exercise, sets_str, date_of_sets)
-    else:
-        # Parse bodyweight sets
-        return get_exercise_sets(exercise, 0, sets_str, date_of_sets)
-
-
-
-
-
-def parse_alias_file(alias_filepath: str):
-    """Parse alias txt file, and populate the alias dictionary."""
     result = {}
     with open(alias_filepath, 'r') as f:
         for line in f.readlines():
@@ -210,10 +224,12 @@ def parse_alias_file(alias_filepath: str):
     return result
 
 
-def parse_exercise(ln: str, alias_dict: Dict) -> str:
+def _parse_exercise(ln: str, alias_dict: Dict) -> str:
     """
-    Parse exercise from a line in an HTML file.
+    Parse exercise name from a line in an HTML file.
+
     :param ln: line in a workout file.   Ex: <li>Rear delt rows SS1 : 3x15 at 12.5<br></li>
+    :param alias_dict: alias dictionary used to resolve aliases to common names
     :return:  exercise name in the line. Ex: 'rear delt row'
     """
     result = ln.split(':')[0]
@@ -241,6 +257,8 @@ def parse_exercise(ln: str, alias_dict: Dict) -> str:
     result = result.replace('.', '')
 
     # Some manual replacement.
+    # Going with singular names instead of plural for now.
+    # TODO It would be nice if this were configurable and not hard-coded.
     result = result.replace(';', ',')
     result = result.replace('barbell', 'bb')
     result = result.replace('dumbbell', 'db')
@@ -248,8 +266,6 @@ def parse_exercise(ln: str, alias_dict: Dict) -> str:
     result = result.replace('t bar', 'tbar')
     result = result.replace('hex bar', 'hexbar')
     result = result.replace('hexbar', 'hb')
-    # Going with singular names instead of plural for now.
-    # TODO Probably want a better way of aliasing exercises.
     result = result.replace('triceps', 'tricep')
     result = result.replace('tricep', 'tri')
     result = result.replace('curls', 'curl')
@@ -273,10 +289,11 @@ def parse_exercise(ln: str, alias_dict: Dict) -> str:
     return result
 
 
-def sanitize_sets(ln: str) -> str:
+def _sanitize_sets(ln: str) -> str:
     """
     Given the portion of a workout line indicating the sets, strip comments and
     undesirable characters.
+
     :param ln: raw string of exercise sets.  Ex:  12 at 60, 2x9 at 70<br></li>
     :return: sanitized sets string.          Ex: 12@60,2x9@70
     """
@@ -302,7 +319,16 @@ def sanitize_sets(ln: str) -> str:
 
 
 def import_sets_via_html(html_filepath, alias_filepath):
-    alias_dict = parse_alias_file(alias_filepath)
+    """
+    This function reads an HTML and alias TXT file, and inserts data into SQLite.
+    It inserts all the daily_sets that can be parsed from the HTML file and
+    an import item into SQLite.
+
+    :param html_filepath:
+    :param alias_filepath:
+    :return:
+    """
+    alias_dict = get_alias_dict(alias_filepath)
 
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
@@ -345,14 +371,14 @@ def import_sets_via_html(html_filepath, alias_filepath):
                 # Lines with exercises are structured like this: "exercise : sets"
                 elif line.__contains__(':'):
                     print(line_num, line)
-                    exercise = parse_exercise(line, alias_dict)
+                    exercise = _parse_exercise(line, alias_dict)
 
-                    sets_str = sanitize_sets(line[line.index(':'):])
+                    sets_str = _sanitize_sets(line[line.index(':'):])
                     if sets_str == "":
                         print("SKIPPING, NO SETS TO LOG.")
                     else:
                         daily_sets_item = (exercise, curr_date, sets_str)
-                        print(f'  daily sets found: {daily_sets_item}')
+                        print(f'  daily_sets found: {daily_sets_item}')
                         daily_sets_list.append(daily_sets_item)
 
     cur.execute("BEGIN TRANSACTION")
