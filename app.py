@@ -13,6 +13,7 @@ from tkcalendar import DateEntry
 
 from exercise_set import ExerciseSet
 from html_parser import HtmlParser
+from sql_utility import create_tables, get_imports, get_exercise_sets_dict
 
 
 WINDOW_HEIGHT = 1080
@@ -293,7 +294,7 @@ class TabImportExercises(ttk.Frame):
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0, sticky=W)
         lbl_import_methods = ttk.Label(row0, text="Import Methods")
-        lbl_import_methods.pack(side=LEFT)
+        lbl_import_methods.grid(row=0, column=0)
 
         # Container row 1
         row1 = ttk.Frame(self)
@@ -310,7 +311,7 @@ class TabImportExercises(ttk.Frame):
 
         frm_apple = ttk.Frame(row1)
         frm_apple.grid(row=0, column=1)
-        lbl_via_apple = ttk.Label(frm_apple, text="Via HTML File")
+        lbl_via_apple = ttk.Label(frm_apple, text="Via Apple Notes")
         lbl_via_apple.grid(row=0, column=0)
         lbl_via_apple_desc = ttk.Label(frm_apple, text="You can import exercise sets via Apple Notes.")
         lbl_via_apple_desc.grid(row=1, column=0)
@@ -321,7 +322,7 @@ class TabImportExercises(ttk.Frame):
         row2 = ttk.Frame(self)
         row2.grid(row=2, column=0, sticky=W)
         lbl_import_status = ttk.Label(row2, text="Import Status")
-        lbl_import_status.pack(side=LEFT)
+        lbl_import_status.grid(row=0, column=0)
 
         # Container row 3
         row3 = ttk.Frame(self)
@@ -336,21 +337,55 @@ class TabImportExercises(ttk.Frame):
         row4 = ttk.Frame(self)
         row4.grid(row=4, column=0, sticky=W)
         lbl_undo_imports_title = ttk.Label(row4, text="Undo Imports")
-        lbl_undo_imports_title.pack(side=LEFT)
+        lbl_undo_imports_title.grid(row=0, column=0)
 
         # Container row 5
         row5 = ttk.Frame(self)
         row5.grid(row=5, column=0, sticky=W)
         lbl_undo_imports_desc = ttk.Label(row5,
                                       text="You can view all your imports and delete them here.")
-        lbl_undo_imports_desc.pack(side=LEFT)
-        # TODO this section will have a table that displays the user's imports.
-        # The table will retreive SQLite data.
+        lbl_undo_imports_desc.grid(row=0, column=0)
+
+        # Container row 6
+        row6 = ttk.Frame(self)
+        row6.grid(row=6, column=0, sticky=W)
+
+        imports_table = ttk.Frame(row6)
+        imports_table.grid(row=0, column=0)
+        imports = get_imports()
+
+        lbl_method = ttk.Label(imports_table, text='Method')
+        lbl_method.grid(row=0, column=0)
+        lbl_date_time = ttk.Label(imports_table, text='Date Time')
+        lbl_date_time.grid(row=0, column=1)
+        lbl_file = ttk.Label(imports_table, text='File')
+        lbl_file.grid(row=0, column=2)
+        lbl_delete = ttk.Label(imports_table, text='Delete')
+        lbl_delete.grid(row=0, column=3)
+
+        curr_row = 1
+        for imprt in imports:
+            imprt_method, imprt_date_time, imprt_filepath = imprt
+            lbl_imprt_method = ttk.Label(imports_table, text=imprt_method)
+            lbl_imprt_method.grid(row=curr_row, column=0)
+            lbl_date_time = ttk.Label(imports_table, text=imprt_date_time)
+            lbl_date_time.grid(row=curr_row, column=1)
+            # TODO add functionality to buttons so they open the file
+            btn_imprt_filepath = ttk.Button(imports_table, text=imprt_filepath)
+            btn_imprt_filepath.grid(row=curr_row, column=2)
+            # TODO add functionality to buttons so they delete the import
+            btn_delete = ttk.Button(imports_table, text='Delete')
+            btn_delete.grid(row=curr_row, column=3)
+            curr_row += 1
 
         pad_frame(self)
         pad_frame(row1)
         pad_frame(frm_html)
         pad_frame(frm_apple)
+        pad_frame(imports_table)
+
+    # def build_imports_table(self):
+
 
 if __name__ == '__main__':
     lift_log = LiftLogGUI()

@@ -28,12 +28,14 @@ def create_tables():
         )
     """)
     # date_time is stored in SQLite as TEXT (YYYY-MM-DD HH:MM:SS).
-    # file is the content of the file used for the import (ex: HTML file content)
+    # file_content is the content of the file used for the import
+    # (for now, it's only used for HTML file content)
     # method is TEXT that equals 'html' or 'apple'
     cur.execute("""
         CREATE TABLE IF NOT EXISTS import(
             date_time TEXT,
-            file TEXT,
+            filepath TEXT,
+            file_content TEXT,
             method TEXT
         )
     """)
@@ -45,11 +47,11 @@ def create_tables():
 def get_imports():
     """
     Retrieve import items from SQLite, and return them as a list of tuples.
-    Ex: [(import date, import file, import method), ...]
+    This only returns the relevant fields needed to build the imports table.
     """
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
-    result = cur.execute("SELECT * FROM import")
+    result = cur.execute("SELECT method, date_time, filepath FROM import")
     imports = result.fetchall()
     cur.close()
     con.close()
@@ -386,7 +388,7 @@ def import_sets_via_html(html_filepath, alias_filepath):
     # Insert import item
     now = datetime.today()
     now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
-    cur.execute(f"INSERT INTO import(date_time, file, method) VALUES('{now_str}', '{content}', 'html')")
+    cur.execute(f"INSERT INTO import(date_time, filepath, file_content, method) VALUES('{now_str}', '{html_filepath}', '{content}', 'html')")
 
     # Insert daily_sets items
     import_id = cur.lastrowid
