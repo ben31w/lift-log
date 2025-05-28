@@ -43,7 +43,10 @@ def create_tables():
 
 
 def get_imports():
-    """Retrieve imports from SQLite, and return them as a list of tuples."""
+    """
+    Retrieve imports from SQLite, and return them as a list of tuples.
+    Ex: [(import date, import file, import method), ...]
+    """
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
     result = cur.execute("SELECT * FROM import")
@@ -51,6 +54,39 @@ def get_imports():
     cur.close()
     con.close()
     return imports
+
+
+def get_exercise_sets_dict():
+    """
+    Retrieve daily_sets items from SQLite, convert them into ExerciseSet
+    objects in Python, and build a dictionary that maps exercises to
+    ExerciseSet objects.
+    """
+    print("\nBuilding Exercise-Sets Dictionary")
+    con = sqlite3.connect("personal.db")
+    cur = con.cursor()
+    exercise_sets_dict = {}
+
+    result = cur.execute("SELECT exercise, date, string FROM daily_sets")
+    all_daily_sets_items = result.fetchall()
+    for item in all_daily_sets_items:
+        # print(f'Got an item: {item}')
+        # Convert daily_sets in SQLite to ExerciseSet objects in Python
+        individual_exercise_sets = parse_sets(item)
+
+        # Now add those ExerciseSet objects to the dict.
+        if individual_exercise_sets:
+            if len(individual_exercise_sets) > 6:
+                print("WARNING, LOTS OF SETS FOUND")
+            exercise = item[0]
+            if exercise not in exercise_sets_dict:
+                exercise_sets_dict[exercise] = individual_exercise_sets
+            else:
+                exercise_sets_dict[exercise] += individual_exercise_sets
+
+    cur.close()
+    con.close()
+    return exercise_sets_dict
 
 
 def get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets: date):
@@ -156,37 +192,7 @@ def parse_sets(daily_sets_item : tuple [str, str, str]):
         return get_exercise_sets(exercise, 0, sets_str, date_of_sets)
 
 
-def get_exercise_sets_dict():
-    """
-    Retrieve daily_sets items from SQLite, convert them into ExerciseSet
-    objects in Python, and build a dictionary that maps exercises to
-    ExerciseSet objects.
-    """
-    print("\nBuilding Exercise-Sets Dictionary")
-    con = sqlite3.connect("personal.db")
-    cur = con.cursor()
-    exercise_sets_dict = {}
 
-    result = cur.execute("SELECT exercise, date, string FROM daily_sets")
-    all_daily_sets_items = result.fetchall()
-    for item in all_daily_sets_items:
-        print(f'Got an item: {item}')
-        # Convert daily_sets in SQLite to ExerciseSet objects in Python
-        individual_exercise_sets = parse_sets(item)
-
-        # Now add those ExerciseSet objects to the dict.
-        if individual_exercise_sets:
-            if len(individual_exercise_sets) > 6:
-                print("WARNING, LOTS OF SETS FOUND")
-            exercise = item[0]
-            if exercise not in exercise_sets_dict:
-                exercise_sets_dict[exercise] = individual_exercise_sets
-            else:
-                exercise_sets_dict[exercise] += individual_exercise_sets
-
-    cur.close()
-    con.close()
-    return exercise_sets_dict
 
 
 def parse_alias_file(alias_filepath: str):
@@ -371,3 +377,12 @@ def import_sets_via_html(html_filepath, alias_filepath):
 if __name__ == '__main__':
     create_tables()
     import_sets_via_html('my_workouts.html', 'aliases.txt')
+
+
+    print("---# OF SETS LOGGED FOR EACH EXERCISE---")
+    esd = get_exercise_sets_dict()
+
+    sorted_dict = {key: val for key, val in
+                   sorted(esd.items(), key=lambda ele: len(ele[1]), reverse=True)}
+    for k, v in sorted_dict.items():
+        print(f"{k}: {len(v)}")
