@@ -63,7 +63,6 @@ def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> s
     date_sets_str = date_sets_str.replace("1x", "")
     return date_sets_str
 
-
 def pad_frame(frame: ttk.Frame):
     """
     Add padding to each widget inside a frame. Call this after the frame's
@@ -81,7 +80,6 @@ def update_esd():
     """
     global esd
     esd = get_exercise_sets_dict()
-
 
 def full_html_import(html_filepath, alias_filepath):
     """Import sets via HTML AND update the ESD!!"""
@@ -171,7 +169,6 @@ class TabMySets(ttk.Frame):
         self.update_text_area()
         self.show_plots(event)
 
-
     def update_text_area(self):
         """Update the text area with dates and sets for the selected exercise."""
         selected_exercise = self.combobox.get()
@@ -202,13 +199,11 @@ class TabMySets(ttk.Frame):
         self.text_area.insert(END, to_insert)  # Update with new text
         self.text_area.configure(state="disabled")
 
-
     def show_plots(self, event : Event):
         if event.widget == self.combobox:
             self._show_plots()
         if event.widget == self.date_entry_start or event.widget == self.date_entry_end:
             self._show_plots(start_date=self.date_entry_start.get_date(), end_date=self.date_entry_end.get_date())
-
 
     def _show_plots(self, start_date : date = None, end_date : date = None):
         """
@@ -254,7 +249,6 @@ class TabMySets(ttk.Frame):
         self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=start_date, end_date=end_date,
                        cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
         pad_frame(self.row1)
-
 
     def show_plot(self, list_sets : list[ExerciseSet], min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
         """
@@ -305,6 +299,7 @@ class TabMySets(ttk.Frame):
         canvas = FigureCanvasTkAgg(fig, self.plot_grid)
         canvas.draw()
         canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
+
 
 class TabImportExercises(ttk.Frame):
     """A frame that allows the user to import exercise sets via HTML or Apple Notes."""
