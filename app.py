@@ -12,12 +12,12 @@ from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
 from exercise_set import ExerciseSet
-from sql_utility import create_tables, get_imports, get_exercise_sets_dict
+from sql_utility import create_tables, get_imports, get_exercise_sets_dict, import_sets_via_html
 
 # Initialize some SQLite data and Python variables before anything else starts.
 create_tables()
 # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
-esd = {}
+esd = get_exercise_sets_dict()
 
 WINDOW_HEIGHT = 1080
 WINDOW_WIDTH = 1700
@@ -74,9 +74,19 @@ def pad_frame(frame: ttk.Frame):
     for child in frame.winfo_children():
         child.grid_configure(padx=5, pady=5)
 
-def update_esd(*args):
+def update_esd():
+    """
+    Update ESD to reflect the latest data in SQLite. This should be called
+    whenever new sets are imported (inserted into SQLite).
+    """
     global esd
     esd = get_exercise_sets_dict()
+
+
+def full_html_import(html_filepath, alias_filepath):
+    """Import sets via HTML AND update the ESD!!"""
+    import_sets_via_html(html_filepath, alias_filepath)
+    update_esd()
 
 
 class LiftLog(Tk):
@@ -95,8 +105,6 @@ class LiftLog(Tk):
         tab_import_sets.pack(fill='both', expand=True)
         self.notebook.add(tab_my_sets, text="My Sets")
         self.notebook.add(tab_import_sets, text="Import Sets")
-        # Update the ESD whenever a tab is changed to keep it up-to-date.
-        self.notebook.bind('<<NotebookTabChanged>>', update_esd)
 
 
 class TabMySets(ttk.Frame):
@@ -107,9 +115,6 @@ class TabMySets(ttk.Frame):
     def __init__(self, parent):
         ttk.Frame.__init__(self, parent)
 
-        global esd
-        esd = get_exercise_sets_dict()
-
         # Container row 0
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0, sticky=W)
@@ -117,9 +122,9 @@ class TabMySets(ttk.Frame):
         lbl_exercise.pack(side=LEFT)
         self.combobox = ttk.Combobox(row0, width=40)
         self.combobox.pack(side=LEFT)
-        print("EXERCISES")
-        print(sorted(list(esd.keys())))
         exercises = sorted(list(esd.keys()))
+        print("EXERCISES")
+        print(exercises)
         self.combobox['values'] = exercises
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
 
@@ -127,6 +132,7 @@ class TabMySets(ttk.Frame):
         # add them to the GUI yet. Wait for the first exercise to be selected.
         self.dates_visible = False
         self.lbl_start_date = ttk.Label(row0, text="Start Date")
+        # TODO DateEntry Calendar is popping up an extra window.
         self.date_entry_start = DateEntry(row0, width=12, background='darkblue',
                                           foreground='white', borderwidth=2)
         self.lbl_end_date = ttk.Label(row0, text="End Date")
@@ -137,6 +143,7 @@ class TabMySets(ttk.Frame):
         self.row1 = ttk.Frame(self)
         self.row1.grid(row=1, column=0, sticky=W)
         self.text_area = Text(self.row1, height=48, width=30)
+        self.text_area.configure(state='disabled')  # user can't type here
         self.text_area.grid(row=0, column=0, sticky=W)
         scrollbar = ttk.Scrollbar(self.row1, command=self.text_area.yview)
         scrollbar.grid(row=0, column=1, sticky=NSEW)
@@ -168,6 +175,7 @@ class TabMySets(ttk.Frame):
     def update_text_area(self):
         """Update the text area with dates and sets for the selected exercise."""
         selected_exercise = self.combobox.get()
+        self.text_area.configure(state="normal")
         self.text_area.delete("1.0", END)  # Clear existing text
 
         to_insert = ""  # Everything to insert in the text area
@@ -192,6 +200,7 @@ class TabMySets(ttk.Frame):
             to_insert += f"{build_date_sets_string(d, l)}\n\n"
 
         self.text_area.insert(END, to_insert)  # Update with new text
+        self.text_area.configure(state="disabled")
 
 
     def show_plots(self, event : Event):
@@ -340,6 +349,7 @@ class TabImportExercises(ttk.Frame):
         row3 = ttk.Frame(self)
         row3.grid(row=3, column=0, sticky=W)
         status_msg_area = Text(row3, height=20, width=170)
+        status_msg_area.configure(state='disabled')  # user can't type here.
         status_msg_area.grid(row=0, column=0)
         scrollbar = ttk.Scrollbar(row3, command=status_msg_area.yview)
         scrollbar.grid(row=0, column=1, sticky=NSEW)
