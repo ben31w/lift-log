@@ -12,12 +12,19 @@ from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
 from exercise_set import ExerciseSet
-from html_parser import HtmlParser
 from sql_utility import create_tables, get_imports, get_exercise_sets_dict
 
+# Initialize some SQLite data and Python variables before anything else starts.
+create_tables()
+# ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
+esd = {}
 
 WINDOW_HEIGHT = 1080
 WINDOW_WIDTH = 1700
+
+# TODO add more styles
+ttk.Style().configure("TButton", padding=6, relief="flat",
+                      background="#ccc")
 
 def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> str:
     """
@@ -67,26 +74,29 @@ def pad_frame(frame: ttk.Frame):
     for child in frame.winfo_children():
         child.grid_configure(padx=5, pady=5)
 
+def update_esd(*args):
+    global esd
+    esd = get_exercise_sets_dict()
 
-class LiftLogGUI(Tk):
+
+class LiftLog(Tk):
     def __init__(self, *args, **kwargs):
+        # Init window
         Tk.__init__(self, *args, **kwargs)
         self.title("Lift Log")
         self.geometry(f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}')
 
-        self.html_parser = HtmlParser('my_workouts.html', 'aliases.txt')
-
+        # Init the notebook and tabs
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill='both', expand=True)
-
-        tab_my_sets = TabMySets(self.notebook, self.html_parser)
-        tab_import_sets = TabImportExercises(self.notebook, self.html_parser)
-
+        tab_my_sets = TabMySets(self.notebook)
         tab_my_sets.pack(fill='both', expand=True)
+        tab_import_sets = TabImportExercises(self.notebook)
         tab_import_sets.pack(fill='both', expand=True)
-
         self.notebook.add(tab_my_sets, text="My Sets")
         self.notebook.add(tab_import_sets, text="Import Sets")
+        # Update the ESD whenever a tab is changed to keep it up-to-date.
+        self.notebook.bind('<<NotebookTabChanged>>', update_esd)
 
 
 class TabMySets(ttk.Frame):
@@ -94,22 +104,26 @@ class TabMySets(ttk.Frame):
     A frame where users can view their exercise sets in list and graph form for
     a selected exercise.
     """
-    def __init__(self, parent, html_parser : HtmlParser):
+    def __init__(self, parent):
         ttk.Frame.__init__(self, parent)
 
-        self.html_parser = html_parser
+        global esd
+        esd = get_exercise_sets_dict()
 
         # Container row 0
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0, sticky=W)
         lbl_exercise = ttk.Label(row0, text="Exercise")
         lbl_exercise.pack(side=LEFT)
-        exercises = sorted(list(self.html_parser.exercises))
-        self.combobox = ttk.Combobox(row0, values=exercises, width=40)
+        self.combobox = ttk.Combobox(row0, width=40)
         self.combobox.pack(side=LEFT)
+        print("EXERCISES")
+        print(sorted(list(esd.keys())))
+        exercises = sorted(list(esd.keys()))
+        self.combobox['values'] = exercises
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
-        
-        # Create labels and date entries for the start and end date, but DON'T 
+
+        # Create labels and date entries for the start and end date, but DON'T
         # add them to the GUI yet. Wait for the first exercise to be selected.
         self.dates_visible = False
         self.lbl_start_date = ttk.Label(row0, text="Start Date")
@@ -146,7 +160,7 @@ class TabMySets(ttk.Frame):
             self.dates_visible = True
             self.date_entry_start.bind("<<DateEntrySelected>>", self.show_plots)
             self.date_entry_end.bind("<<DateEntrySelected>>", self.show_plots)
-        
+
         self.update_text_area()
         self.show_plots(event)
 
@@ -157,7 +171,7 @@ class TabMySets(ttk.Frame):
         self.text_area.delete("1.0", END)  # Clear existing text
 
         to_insert = ""  # Everything to insert in the text area
-        list_sets = self.html_parser.exercise_set_dict[selected_exercise]
+        list_sets = esd[selected_exercise]
         date_sets_list_dict: Dict[date, list[ExerciseSet]] = {}  # {2024-10-10: [set1, set2]}
 
         # Build dict from list of sets
@@ -202,12 +216,12 @@ class TabMySets(ttk.Frame):
 
         # Find default start and end dates if none were provided.
         if start_date is None:
-            start_date = min([s.date for s in self.html_parser.exercise_set_dict[selected_exercise]])
+            start_date = min([s.date for s in esd[selected_exercise]])
         if end_date is None:
-            end_date = max([s.date for s in self.html_parser.exercise_set_dict[selected_exercise]])
+            end_date = max([s.date for s in esd[selected_exercise]])
         print(start_date)
         print(end_date)
-        date_filtered_sets = [s for s in self.html_parser.exercise_set_dict[selected_exercise] if
+        date_filtered_sets = [s for s in esd[selected_exercise] if
                               start_date <= s.date <= end_date]
 
         # Get sets of 1-5, 6-8, 9-11, and 12+ reps
@@ -285,10 +299,8 @@ class TabMySets(ttk.Frame):
 
 class TabImportExercises(ttk.Frame):
     """A frame that allows the user to import exercise sets via HTML or Apple Notes."""
-    def __init__(self, parent, html_parser : HtmlParser):
+    def __init__(self, parent):
         ttk.Frame.__init__(self, parent)
-
-        self.html_parser = html_parser
 
         # Container row 0
         row0 = ttk.Frame(self)
@@ -388,5 +400,5 @@ class TabImportExercises(ttk.Frame):
 
 
 if __name__ == '__main__':
-    lift_log = LiftLogGUI()
+    lift_log = LiftLog()
     lift_log.mainloop()
