@@ -11,6 +11,7 @@ abs machine
 
 .arnold press
 arnold
+arnolds
 
 .back ext
 back extension
