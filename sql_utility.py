@@ -3,6 +3,7 @@ Contains utility functions for interacting with the SQLite database.
 """
 
 import math
+import os.path
 import sqlite3
 from datetime import date
 from datetime import datetime
@@ -214,6 +215,9 @@ def get_alias_dict(alias_filepath: str):
     :return: alias dictionary
     """
     result = {}
+    if not os.path.exists(alias_filepath):
+        return result
+
     with open(alias_filepath, 'r') as f:
         for line in f.readlines():
             line = line.strip()

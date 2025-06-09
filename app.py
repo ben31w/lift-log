@@ -1,6 +1,7 @@
 import os
 from datetime import date
 from tkinter import *
+from tkinter import messagebox
 from tkinter import ttk
 from typing import Dict
 
@@ -410,7 +411,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         # Container row 0
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0, sticky=W)
-        lbl_import_via_html = ttk.Label(row0, text="Import sets with an HTML and alias (TXT) file.")
+        lbl_import_via_html = ttk.Label(row0, text="Import sets with an HTML (required) and alias (TXT, optional) file.")
         lbl_import_via_html.grid(row=0, column=0)
 
         # Container row 1
@@ -428,8 +429,8 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         row2.grid(row=2, column=0, sticky=W)
         lbl_alias_filepath = ttk.Label(row2, text="Alias Filepath")
         lbl_alias_filepath.grid(row=0, column=0)
-        entry_alias_filepath = ttk.Entry(row2, width=50)
-        entry_alias_filepath.grid(row=0, column=1)
+        self.entry_alias_filepath = ttk.Entry(row2, width=50)
+        self.entry_alias_filepath.grid(row=0, column=1)
         btn_browse_alias = ttk.Button(row2, text="Browse")
         btn_browse_alias.grid(row=0, column=2)
 
@@ -438,9 +439,6 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         row3.grid(row=3, column=0, sticky=W)
         btn_import_html = ttk.Button(row3, text="Import", command=self.import_html_file)
         btn_import_html.grid(row=0, column=0)
-        self.error_msg = StringVar()
-        self.lbl_error_msg = ttk.Label(row3, text="", foreground="red")  # Empty error msg by default
-        self.lbl_error_msg.grid(row=0, column=1)
 
         pad_frame(self)
 
@@ -454,16 +452,35 @@ class SubTabImportSetsViaHTML(ttk.Frame):
 
     def import_html_file(self):
         """Import the HTML file that the user has selected."""
-        print("import_html_file")
         html_file = self.entry_html_filepath.get()
-        print(f"HTML FILE: {html_file}")
+        alias_file = self.entry_alias_filepath.get()
+
+        # First, validate the HTML file. Invalid HTML is a critical error.
         if not os.path.exists(html_file):
-            self.lbl_error_msg.config(text=f"HTML file '{html_file}' does not exist.")
+            messagebox.showerror("Error", f"HTML file '{html_file}' does not exist.")
         elif len(html_file) > 5 and html_file[-5:] != '.html':
-            self.lbl_error_msg.config(text=f"'{html_file}' is not an HTML file.")
+            messagebox.showerror("Error", f"'{html_file}' is not an HTML file.")
         else:
-            self.lbl_error_msg.config(text=f"HTML file '{html_file}' exists.")
-            # TODO process HTML file
+            # Next, validate the alias file and check for duplicate HTML imports.
+            # These are non-critical warnings that the user can choose to ignore.
+            warning_msgs = []
+            if not os.path.exists(alias_file):
+                warning_msgs.append(f"Alias file '{alias_file}' does not exist.")
+            # TODO validate format of alias file.
+            # TODO Check for duplicate HTML imports
+
+            if len(warning_msgs) > 0:
+                warning = ""
+                for msg in warning_msgs:
+                    warning += f"{msg}\n"
+                warning += "Want to continue?"
+                proceed = messagebox.askokcancel("Warnings", warning)
+            else:
+                proceed = True
+
+            if proceed:
+                print("Nice.")
+                # full_html_import(html_file, alias_file)
 
 if __name__ == '__main__':
     lift_log = LiftLog()
