@@ -18,8 +18,6 @@ from sql_utility import create_tables, delete_import, get_exercise_sets_dict, ge
 
 # Initialize some SQLite data and Python variables before anything else starts.
 create_tables()
-# ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
-esd = get_exercise_sets_dict()
 
 WINDOW_HEIGHT = 1080
 WINDOW_WIDTH = 1700
@@ -75,19 +73,6 @@ def pad_frame(frame: ttk.Frame):
     for child in frame.winfo_children():
         child.grid_configure(padx=5, pady=5)
 
-def update_esd():
-    """
-    Update ESD to reflect the latest data in SQLite. This should be called
-    whenever new sets are imported (inserted into SQLite).
-    """
-    global esd
-    esd = get_exercise_sets_dict()
-
-def full_html_import(html_filepath, alias_filepath):
-    """Import sets via HTML AND update the ESD!!"""
-    import_sets_via_html(html_filepath, alias_filepath)
-    update_esd()
-
 
 class LiftLog(Tk):
     def __init__(self, *args, **kwargs):
@@ -102,7 +87,7 @@ class LiftLog(Tk):
         main_notebook.pack(fill='both', expand=True)
         tab_my_sets = TabMySets(main_notebook)
         tab_my_sets.pack(fill='both', expand=True)
-        tab_import_sets = TabImportSets(main_notebook)
+        tab_import_sets = TabImportSets(main_notebook, tab_my_sets)
         tab_import_sets.pack(fill='both', expand=True)
         main_notebook.add(tab_my_sets, text="My Sets")
         main_notebook.add(tab_import_sets, text="Import Sets")
@@ -124,11 +109,8 @@ class TabMySets(ttk.Frame):
         lbl_exercise.pack(side=LEFT)
         self.combobox = ttk.Combobox(row0, width=40)
         self.combobox.pack(side=LEFT)
-        exercises = sorted(list(esd.keys()))
-        print("EXERCISES")
-        print(exercises)
-        self.combobox['values'] = exercises
-        self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
+        self.esd = {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
+        self.update_exercises()
 
         # Create labels and date entries for the start and end date, but DON'T
         # add them to the GUI yet. Wait for the first exercise to be selected.
@@ -156,6 +138,14 @@ class TabMySets(ttk.Frame):
         pad_frame(self)
         pad_frame(self.row1)
 
+    def update_exercises(self):
+        self.esd = get_exercise_sets_dict()
+        exercises = sorted(list(self.esd.keys()))
+        print("EXERCISES")
+        print(exercises)
+        self.combobox['values'] = exercises
+        self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
+
     def filter_sets(self, event: Event):
         """
         When a new exercise is selected in the combobox, filter the sets being
@@ -180,7 +170,7 @@ class TabMySets(ttk.Frame):
         self.text_area.delete("1.0", END)  # Clear existing text
 
         to_insert = ""  # Everything to insert in the text area
-        list_sets = esd[selected_exercise]
+        list_sets = self.esd[selected_exercise]
         date_sets_list_dict: Dict[date, list[ExerciseSet]] = {}  # {2024-10-10: [set1, set2]}
 
         # Build dict from list of sets
@@ -224,12 +214,12 @@ class TabMySets(ttk.Frame):
 
         # Find default start and end dates if none were provided.
         if start_date is None:
-            start_date = min([s.date for s in esd[selected_exercise]])
+            start_date = min([s.date for s in self.esd[selected_exercise]])
         if end_date is None:
-            end_date = max([s.date for s in esd[selected_exercise]])
+            end_date = max([s.date for s in self.esd[selected_exercise]])
         print(start_date)
         print(end_date)
-        date_filtered_sets = [s for s in esd[selected_exercise] if
+        date_filtered_sets = [s for s in self.esd[selected_exercise] if
                               start_date <= s.date <= end_date]
 
         # Get sets of 1-5, 6-8, 9-11, and 12+ reps
@@ -315,7 +305,7 @@ class TabImportSets(ttk.Frame):
 
     There is an import status window and a way to remove previous imports (TODO actually implement).
     """
-    def __init__(self, parent):
+    def __init__(self, parent, tab_my_sets: TabMySets):
         ttk.Frame.__init__(self, parent)
 
         # Container row 0
@@ -329,7 +319,7 @@ class TabImportSets(ttk.Frame):
         row1.grid(row=1, column=0, sticky=W)
         import_method_notebook = ttk.Notebook(row1)
         import_method_notebook.grid(row=0, column=0)
-        tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self)
+        tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self, tab_my_sets)
         tab_import_via_html.pack(fill='both', expand=True)
         import_method_notebook.add(tab_import_via_html, text="HTML")
 
@@ -408,13 +398,14 @@ class SubTabImportSetsViaHTML(ttk.Frame):
     """
     This frame is where the user imports sets via an HTML file.
     """
-    def __init__(self, parent, tab_import_sets : TabImportSets):
+    def __init__(self, parent, tab_import_sets : TabImportSets, tab_my_sets : TabMySets):
         """
         :param parent: the notebook that stores this tab
         :param tab_import_sets: the overarching tab
         """
         ttk.Frame.__init__(self, parent)
         self.tab_import_sets = tab_import_sets
+        self.tab_my_sets = tab_my_sets
 
         # Container row 0
         row0 = ttk.Frame(self)
@@ -487,8 +478,9 @@ class SubTabImportSetsViaHTML(ttk.Frame):
                 proceed = True
 
             if proceed:
-                full_html_import(html_file, alias_file)
+                import_sets_via_html(html_file, alias_file)
                 self.tab_import_sets.fill_imports_table()
+                self.tab_my_sets.update_exercises()
 
 if __name__ == '__main__':
     lift_log = LiftLog()
