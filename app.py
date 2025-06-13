@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
 from exercise_set import ExerciseSet
-from sql_utility import create_tables, get_imports, get_exercise_sets_dict, import_sets_via_html
+from sql_utility import create_tables, delete_import, get_exercise_sets_dict, get_imports, import_sets_via_html
 
 # Initialize some SQLite data and Python variables before anything else starts.
 create_tables()
@@ -329,7 +329,7 @@ class TabImportSets(ttk.Frame):
         row1.grid(row=1, column=0, sticky=W)
         import_method_notebook = ttk.Notebook(row1)
         import_method_notebook.grid(row=0, column=0)
-        tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook)
+        tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self)
         tab_import_via_html.pack(fill='both', expand=True)
         import_method_notebook.add(tab_import_via_html, text="HTML")
 
@@ -366,47 +366,55 @@ class TabImportSets(ttk.Frame):
         row6 = ttk.Frame(self)
         row6.grid(row=6, column=0, sticky=W)
 
-        imports_table = ttk.Frame(row6)
-        imports_table.grid(row=0, column=0)
-        imports = get_imports()
-
-        lbl_method = ttk.Label(imports_table, text='Method')
+        self.imports_table = ttk.Frame(row6)
+        self.imports_table.grid(row=0, column=0)
+        self.imports = get_imports()
+        # Table headers
+        lbl_method = ttk.Label(self.imports_table, text='Method')
         lbl_method.grid(row=0, column=0)
-        lbl_date_time = ttk.Label(imports_table, text='Date Time')
+        lbl_date_time = ttk.Label(self.imports_table, text='Date Time')
         lbl_date_time.grid(row=0, column=1)
-        lbl_file = ttk.Label(imports_table, text='File')
+        lbl_file = ttk.Label(self.imports_table, text='File')
         lbl_file.grid(row=0, column=2)
-        lbl_delete = ttk.Label(imports_table, text='Delete')
+        lbl_delete = ttk.Label(self.imports_table, text='Delete')
         lbl_delete.grid(row=0, column=3)
+        # Table content
+        self.fill_imports_table()
+        
+        pad_frame(self)
+        pad_frame(row1)
+        pad_frame(self.imports_table)
 
+    def fill_imports_table(self):
         curr_row = 1
-        for imprt in imports:
-            imprt_method, imprt_date_time, imprt_filepath = imprt
-            lbl_imprt_method = ttk.Label(imports_table, text=imprt_method)
+        for imprt in get_imports():
+            imprt_method, imprt_date_time, imprt_filepath, imprt_id = imprt
+            lbl_imprt_method = ttk.Label(self.imports_table, text=imprt_method)
             lbl_imprt_method.grid(row=curr_row, column=0)
-            lbl_date_time = ttk.Label(imports_table, text=imprt_date_time)
+            lbl_date_time = ttk.Label(self.imports_table, text=imprt_date_time)
             lbl_date_time.grid(row=curr_row, column=1)
             # TODO add functionality to buttons so they open the file
-            btn_imprt_filepath = ttk.Button(imports_table, text=imprt_filepath)
+            btn_imprt_filepath = ttk.Button(self.imports_table, text=imprt_filepath)
             btn_imprt_filepath.grid(row=curr_row, column=2)
-            # TODO add functionality to buttons so they delete the import
-            btn_delete = ttk.Button(imports_table, text='Delete')
+            btn_delete = ttk.Button(self.imports_table, text='Delete', command=lambda: delete_import(imprt_id))
             btn_delete.grid(row=curr_row, column=3)
             curr_row += 1
 
-        pad_frame(self)
-        pad_frame(row1)
-        pad_frame(imports_table)
-
-    # def build_imports_table(self):
-
+    def delete_import_from_table(self, import_id):
+        delete_import(import_id)
+        self.fill_imports_table()
 
 class SubTabImportSetsViaHTML(ttk.Frame):
     """
     This frame is where the user imports sets via an HTML file.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, tab_import_sets : TabImportSets):
+        """
+        :param parent: the notebook that stores this tab
+        :param tab_import_sets: the overarching tab
+        """
         ttk.Frame.__init__(self, parent)
+        self.tab_import_sets = tab_import_sets
 
         # Container row 0
         row0 = ttk.Frame(self)
@@ -455,7 +463,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         html_file = self.entry_html_filepath.get()
         alias_file = self.entry_alias_filepath.get()
 
-        # First, validate the HTML file. Invalid HTML is a critical error.
+        # First, validate the HTML file. The user cannot proceed without a valid HTML file.
         if not os.path.exists(html_file):
             messagebox.showerror("Error", f"HTML file '{html_file}' does not exist.")
         elif len(html_file) > 5 and html_file[-5:] != '.html':
@@ -464,23 +472,23 @@ class SubTabImportSetsViaHTML(ttk.Frame):
             # Next, validate the alias file and check for duplicate HTML imports.
             # These are non-critical warnings that the user can choose to ignore.
             warning_msgs = []
-            if not os.path.exists(alias_file):
+            if len(alias_file) > 0 and not os.path.exists(alias_file):
                 warning_msgs.append(f"Alias file '{alias_file}' does not exist.")
             # TODO validate format of alias file.
             # TODO Check for duplicate HTML imports
 
             if len(warning_msgs) > 0:
-                warning = ""
+                full_warning = ""
                 for msg in warning_msgs:
-                    warning += f"{msg}\n"
-                warning += "Want to continue?"
-                proceed = messagebox.askokcancel("Warnings", warning)
+                    full_warning += f"{msg}\n\n"
+                full_warning += "Want to continue?"
+                proceed = messagebox.askokcancel("Warnings", full_warning)
             else:
                 proceed = True
 
             if proceed:
-                print("Nice.")
-                # full_html_import(html_file, alias_file)
+                full_html_import(html_file, alias_file)
+                self.tab_import_sets.fill_imports_table()
 
 if __name__ == '__main__':
     lift_log = LiftLog()

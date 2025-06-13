@@ -52,11 +52,22 @@ def get_imports():
     """
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
-    result = cur.execute("SELECT method, date_time, filepath FROM import")
+    result = cur.execute("SELECT method, date_time, filepath, rowid FROM import")
     imports = result.fetchall()
     cur.close()
     con.close()
     return imports
+
+def delete_import(import_row_id):
+    """
+    Delete the given import.
+    :return:
+    """
+    con = sqlite3.connect("personal.db")
+    cur = con.cursor()
+    cur.execute(f"DELETE FROM import WHERE rowid = {import_row_id}")
+    cur.close()
+    con.close()
 
 
 def get_exercise_sets_dict():
