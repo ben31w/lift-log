@@ -12,6 +12,7 @@ import mplcursors
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from tkcalendar import DateEntry
+from tksheet import Sheet
 
 from exercise_set import ExerciseSet
 from sql_utility import create_tables, delete_import, get_exercise_sets_dict, get_imports, import_sets_via_html
@@ -355,25 +356,36 @@ class TabImportSets(ttk.Frame):
         # Container row 6
         row6 = ttk.Frame(self)
         row6.grid(row=6, column=0, sticky=W)
-
-        self.imports_table = ttk.Frame(row6)
-        self.imports_table.grid(row=0, column=0)
-        self.imports = get_imports()
-        # Table headers
-        lbl_method = ttk.Label(self.imports_table, text='Method')
-        lbl_method.grid(row=0, column=0)
-        lbl_date_time = ttk.Label(self.imports_table, text='Date Time')
-        lbl_date_time.grid(row=0, column=1)
-        lbl_file = ttk.Label(self.imports_table, text='File')
-        lbl_file.grid(row=0, column=2)
-        lbl_delete = ttk.Label(self.imports_table, text='Delete')
-        lbl_delete.grid(row=0, column=3)
-        # Table content
-        self.fill_imports_table()
+        self.sheet = Sheet(row6,
+                           data=self.get_sheet_data(),
+                           theme="light green",
+                           height=250,
+                           width=550,
+                           headers=["Method", "Date Time", "File", "Delete"]
+                           )
+        self.sheet.enable_bindings(
+            ("single_select",  # allows cell selection
+             "row_select",  # allows row selection
+             "column_select",  # allows column selection
+             "arrowkeys",  # navigation
+             "right_click_popup_menu",
+             "rc_select",
+             "copy",
+             "select_all",
+             "drag_select")
+            # Note: exclude "edit_cell" to prevent editing
+        )
+        self.sheet.grid(row=0, column=0)
         
         pad_frame(self)
         pad_frame(row1)
-        pad_frame(self.imports_table)
+
+    def get_sheet_data(self):
+        sheet_data = []
+        for imprt in get_imports():
+            imprt_method, imprt_date_time, imprt_filepath, imprt_id = imprt
+            sheet_data.append([imprt_method, imprt_date_time, imprt_filepath, imprt_id])
+        return sheet_data
 
     def fill_imports_table(self):
         curr_row = 1
