@@ -77,7 +77,7 @@ class TabImportSets(ttk.Frame):
                            data=self.get_sheet_data(),
                            theme="light green",
                            height=250,
-                           width=550,
+                           width=1200,
                            headers=["Method", "Date Time", "File", "Delete"]
                            )
         self.sheet.enable_bindings(
@@ -89,8 +89,10 @@ class TabImportSets(ttk.Frame):
              "rc_select",
              "copy",
              "select_all",
-             "drag_select")
-            # Note: exclude "edit_cell" to prevent editing
+             "drag_select",
+             "column_width_resize",
+             "double_click_column_resize"
+             )
         )
         self.sheet.grid(row=0, column=0)
 
@@ -198,3 +200,4 @@ class SubTabImportSetsViaHTML(ttk.Frame):
             if proceed:
                 import_sets_via_html(html_file, alias_file)
                 self.tab_my_sets.update_exercises()
+                self.tab_import_sets.sheet.set_data = self.tab_import_sets.get_sheet_data()

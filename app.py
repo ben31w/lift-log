@@ -5,9 +5,6 @@ from sql_utility import create_tables
 from tab_import_sets import TabImportSets
 from tab_my_sets import TabMySets
 
-# Initialize some SQLite data and Python variables before anything else starts.
-create_tables()
-
 WINDOW_HEIGHT = 1080
 WINDOW_WIDTH = 1700
 
@@ -22,6 +19,9 @@ class LiftLog(Tk):
         self.title("Lift Log")
         self.geometry(f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}')
         self.minsize(WINDOW_WIDTH, WINDOW_HEIGHT)
+
+        # Initialize SQLite data first.
+        create_tables()
 
         # Init main notebook and tabs
         main_notebook = ttk.Notebook(self)

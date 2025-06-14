@@ -73,7 +73,7 @@ class TabMySets(ttk.Frame):
         lbl_exercise.pack(side=LEFT)
         self.combobox = ttk.Combobox(row0, width=40)
         self.combobox.pack(side=LEFT)
-        self.esd = {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
+        self.esd= {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
         self.update_exercises()
 
         # Create labels and date entries for the start and end date, but DON'T
@@ -134,7 +134,7 @@ class TabMySets(ttk.Frame):
         self.text_area.delete("1.0", END)  # Clear existing text
 
         to_insert = ""  # Everything to insert in the text area
-        list_sets = self.esd[selected_exercise]
+        list_sets = sorted(self.esd[selected_exercise], key=lambda eset: eset.date)
         date_sets_list_dict: Dict[date, list[ExerciseSet]] = {}  # {2024-10-10: [set1, set2]}
 
         # Build dict from list of sets
