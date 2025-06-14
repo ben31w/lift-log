@@ -60,12 +60,14 @@ def get_imports():
 
 def delete_import(import_row_id):
     """
-    Delete the given import.
+    Delete the given import and all daily_sets associated with the import.
     :return:
     """
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
     cur.execute(f"DELETE FROM import WHERE rowid = {import_row_id}")
+    cur.execute(f"DELETE FROM daily_sets WHERE import_id = {import_row_id}")
+    con.commit()
     cur.close()
     con.close()
 
