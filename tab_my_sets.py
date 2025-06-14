@@ -103,12 +103,19 @@ class TabMySets(ttk.Frame):
         pad_frame(self.row1)
 
     def update_exercises(self):
+        """
+        Update the exercises-sets dictionary and the combobox.
+        :return:
+        """
         self.esd = get_exercise_sets_dict()
         exercises = sorted(list(self.esd.keys()))
         print("EXERCISES")
         print(exercises)
         self.combobox['values'] = exercises
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
+        # This spoofs the 'combobox selected event' to force a refresh.
+        self.combobox.set(self.combobox.get())
+        self.combobox.event_generate("<<ComboboxSelected>>")
 
     def filter_sets(self, event: Event):
         """

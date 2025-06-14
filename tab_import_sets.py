@@ -64,15 +64,15 @@ class TabImportSets(ttk.Frame):
         # Container row 4
         row4 = ttk.Frame(self)
         row4.grid(row=4, column=0, sticky=W)
-        lbl_undo_imports_title = ttk.Label(row4, text="Undo Imports")
-        lbl_undo_imports_title.grid(row=0, column=0)
+        lbl_delete_imports_title = ttk.Label(row4, text="Delete Imports")
+        lbl_delete_imports_title.grid(row=0, column=0)
 
         # Container row 5
         row5 = ttk.Frame(self)
         row5.grid(row=5, column=0, sticky=W)
-        lbl_undo_imports_desc = ttk.Label(row5,
-                                          text="You can view all your imports and delete them here.")
-        lbl_undo_imports_desc.grid(row=0, column=0)
+        lbl_delete_imports_desc = ttk.Label(row5,
+                                            text="You can view all your imports and delete them here.")
+        lbl_delete_imports_desc.grid(row=0, column=0)
 
         # Container row 6
         # The sheet displays the method, date time, file, and delete button for each of the user's imports.
