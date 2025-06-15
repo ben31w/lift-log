@@ -3,6 +3,7 @@ All functions and classes related to the 'Import Sets' tab.
 """
 import os
 from tkinter import *
+from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 
@@ -12,7 +13,9 @@ from common import pad_frame
 from sql_utility import delete_import, get_imports, import_sets_via_html
 from tab_my_sets import TabMySets
 
-DELETE_COL_IDX = 3  # column with delete buttons. Column index is 0-based.
+# Column index is 0-based. These are the column indexes for the sheet of imports.
+FILE_COL_IDX = 2
+DELETE_COL_IDX = 3
 
 class TabImportSets(ttk.Frame):
     """
@@ -115,11 +118,14 @@ class TabImportSets(ttk.Frame):
         """
         content = event["selected"]
         cell_value = self.sheet.get_cell_data(content.row, content.column)
-        print(f"{cell_value} ({content.row}, {content.column})")
+
+        # TODO When a cell in the FILE COL is selected, display the selected file.
+        # if content.column == FILE_COL_IDX:
+
+        # When a cell in DELETE COL is selected, delete the selected import.
         if content.column == DELETE_COL_IDX:
             cell_note = self.sheet.props(content.row, content.column, "note")['note']
-            imprt_id = int(cell_note)
-            print("  Deleting import.")
+            imprt_id = int(cell_note)  # str to int
             self.delete_import_from_sheet(imprt_id, content.row)
 
     def update_sheet(self):
@@ -148,6 +154,12 @@ class TabImportSets(ttk.Frame):
 
     def _style_sheet(self):
         self.sheet.set_all_cell_sizes_to_text()  # Resize cells
+        # Color the 'File' column blue
+        self.sheet.highlight_cells(row="all",
+                                   column=FILE_COL_IDX,
+                                   bg="light blue",
+                                   fg="white",
+                                   overwrite=True)
         # Color the 'Delete' column red
         self.sheet.highlight_cells(row="all",
                                    column=DELETE_COL_IDX,
@@ -189,8 +201,9 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         lbl_html_filepath = ttk.Label(row1, text="HTML Filepath")
         lbl_html_filepath.grid(row=0, column=0)
         self.entry_html_filepath = ttk.Entry(row1, width=50)
+        self.entry_html_filepath.bind("<Control-a>", self.select_all_text)
         self.entry_html_filepath.grid(row=0, column=1)
-        btn_browse_html = ttk.Button(row1, text="Browse")
+        btn_browse_html = ttk.Button(row1, text="Browse", command=self.browse_html_file)
         btn_browse_html.grid(row=0, column=2)
 
         # Container row 2
@@ -199,10 +212,11 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         lbl_alias_filepath = ttk.Label(row2, text="Alias Filepath")
         lbl_alias_filepath.grid(row=0, column=0)
         self.entry_alias_filepath = ttk.Entry(row2, width=50)
+        self.entry_alias_filepath.bind("<Control-a>", self.select_all_text)
         # default filepath (for now)
         self.entry_alias_filepath.insert(0, "/home/ben31w/projects/lift-log/html/aliases.txt")
         self.entry_alias_filepath.grid(row=0, column=1)
-        btn_browse_alias = ttk.Button(row2, text="Browse")
+        btn_browse_alias = ttk.Button(row2, text="Browse", command=self.browse_alias_file)
         btn_browse_alias.grid(row=0, column=2)
 
         # Container row 3
@@ -215,11 +229,26 @@ class SubTabImportSetsViaHTML(ttk.Frame):
 
     def browse_html_file(self):
         """Open window to browse for an HTML file."""
-        # TODO
+        filename = filedialog.askopenfilename(filetypes=(("HTML files", "*.html"), ("All files", "*.*")))
+        if len(filename) == 0:
+            return
+        self.entry_html_filepath.delete(0, END)
+        self.entry_html_filepath.insert(END, filename)
 
     def browse_alias_file(self):
         """Open window to browse for an alias (TXT) file."""
-        # TODO
+        filename = filedialog.askopenfilename(filetypes=(("TXT files", "*.txt"), ("All files", "*.*")))
+        if len(filename) == 0:
+            return
+        self.entry_alias_filepath.delete(0, END)
+        self.entry_alias_filepath.insert(END, filename)
+
+    def select_all_text(self, event : Event):
+        """Select all text in the given Entry widget."""
+        event.widget.select_range(0, END)
+        event.widget.icursor(END)
+        return 'break'
+
 
     def import_html_file(self):
         """Import the HTML file that the user has selected."""

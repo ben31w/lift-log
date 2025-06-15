@@ -74,7 +74,6 @@ class TabMySets(ttk.Frame):
         self.combobox = ttk.Combobox(row0, width=40)
         self.combobox.pack(side=LEFT)
         self.esd= {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
-        self.update_exercises()
 
         # Create labels and date entries for the start and end date, but DON'T
         # add them to the GUI yet. Wait for the first exercise to be selected.
@@ -86,6 +85,8 @@ class TabMySets(ttk.Frame):
         self.lbl_end_date = ttk.Label(row0, text="End Date")
         self.date_entry_end = DateEntry(row0, width=12, background='darkblue',
                                         foreground='white', borderwidth=2)
+
+        self.update_exercises()
 
         # Container row 1
         self.row1 = ttk.Frame(self)
@@ -122,6 +123,11 @@ class TabMySets(ttk.Frame):
         When a new exercise is selected in the combobox, filter the sets being
         displayed in the text area and show new plots.
         """
+        if self.combobox.get() == '':
+            return
+
+        # DateEntry widgets aren't displayed on startup. They are packed in the
+        # first time the sets are filtered.
         if not self.dates_visible:
             self.lbl_start_date.pack(side=LEFT)
             self.date_entry_start.pack(side=LEFT)
