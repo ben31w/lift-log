@@ -8,10 +8,6 @@ from tab_my_sets import TabMySets
 WINDOW_HEIGHT = 1080
 WINDOW_WIDTH = 1700
 
-# TODO use styles? add more styles?
-ttk.Style().configure("TButton", padding=6, relief="flat",
-                      background="#ccc")
-
 class LiftLog(Tk):
     def __init__(self, *args, **kwargs):
         # Init window

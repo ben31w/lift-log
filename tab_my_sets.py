@@ -64,27 +64,30 @@ class TabMySets(ttk.Frame):
     graphical view.
     """
     def __init__(self, parent):
-        ttk.Frame.__init__(self, parent)
+        super().__init__(parent)
 
         # Container row 0
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0, sticky=W)
         lbl_exercise = ttk.Label(row0, text="Exercise")
-        lbl_exercise.pack(side=LEFT)
+        lbl_exercise.grid(row=0, column=0)
         self.combobox = ttk.Combobox(row0, width=40)
-        self.combobox.pack(side=LEFT)
+        self.combobox.grid(row=0, column=1)
         self.esd= {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
 
-        # Create labels and date entries for the start and end date, but DON'T
-        # add them to the GUI yet. Wait for the first exercise to be selected.
-        self.dates_visible = False
         self.lbl_start_date = ttk.Label(row0, text="Start Date")
-        # TODO DateEntry Calendar is popping up an extra window.
+        self.lbl_start_date.grid(row=0, column=2)
         self.date_entry_start = DateEntry(row0, width=12, background='darkblue',
                                           foreground='white', borderwidth=2)
+        self.date_entry_start.grid(row=0, column=3)
+        self.date_entry_start.bind("<<DateEntrySelected>>", self.show_plots)
+
         self.lbl_end_date = ttk.Label(row0, text="End Date")
+        self.lbl_end_date.grid(row=0, column=4)
         self.date_entry_end = DateEntry(row0, width=12, background='darkblue',
                                         foreground='white', borderwidth=2)
+        self.date_entry_end.grid(row=0, column=5)
+        self.date_entry_end.bind("<<DateEntrySelected>>", self.show_plots)
 
         self.update_exercises()
 
@@ -123,19 +126,9 @@ class TabMySets(ttk.Frame):
         When a new exercise is selected in the combobox, filter the sets being
         displayed in the text area and show new plots.
         """
-        if self.combobox.get() == '':
+        selected_exercise = self.combobox.get()
+        if selected_exercise == '':
             return
-
-        # DateEntry widgets aren't displayed on startup. They are packed in the
-        # first time the sets are filtered.
-        if not self.dates_visible:
-            self.lbl_start_date.pack(side=LEFT)
-            self.date_entry_start.pack(side=LEFT)
-            self.lbl_end_date.pack(side=LEFT)
-            self.date_entry_end.pack(side=LEFT)
-            self.dates_visible = True
-            self.date_entry_start.bind("<<DateEntrySelected>>", self.show_plots)
-            self.date_entry_end.bind("<<DateEntrySelected>>", self.show_plots)
 
         self.update_text_area()
         self.show_plots(event)
@@ -171,6 +164,10 @@ class TabMySets(ttk.Frame):
         self.text_area.configure(state="disabled")
 
     def show_plots(self, event : Event):
+        """
+        Update the plots being shown. This is called whenever the dates are
+        adjusted or a new exercise is selected.
+        """
         if event.widget == self.combobox:
             self._show_plots()
         if event.widget == self.date_entry_start or event.widget == self.date_entry_end:
@@ -188,6 +185,8 @@ class TabMySets(ttk.Frame):
         - 12+ reps
         """
         selected_exercise = self.combobox.get()
+        if selected_exercise == '':
+            return
 
         # Find default start and end dates if none were provided.
         if start_date is None:

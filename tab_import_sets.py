@@ -184,7 +184,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         :param parent: the notebook that stores this tab
         :param tab_import_sets: the overarching tab
         """
-        ttk.Frame.__init__(self, parent)
+        super().__init__(parent)
         self.tab_import_sets = tab_import_sets
         self.tab_my_sets = tab_my_sets
 
