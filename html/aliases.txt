@@ -5,30 +5,189 @@
 # Lines with text are an exercise name.
 # Blank lines are ignored.
 
-.ab crunch machine
-ab machine
-abs machine
-
-.arnold press
-arnold
-arnolds
-
-.back ext
-back extension
-back extension extension
-back extension machine
-bes
-
 .bb bench
 bench
 bench press
 bp
 
+.bb bench pause reps
+bench pause reps
+bp pause reps
+
+.bb curl
+bicep bb curl
+bicep curl bb
+
+.bb decline
+bb decline bench
+bb decline bench press
+decline
+decline bench
+decline bench press
+dbp
+
+.bb hip thrust
+bb hip thrusts
+hip thrust
+hip thrusts
+
+.bb incline
+bb incline bench
+bb incline bench press
+incline
+incline bench
+incline bench press
+ibp
+
+.bb rdls
+rdls
+
 .bb row overhand
 bb row o
+bbrs o
+bb row
+bbrs
 
 .bb row underhand
 bb row u
+bbrs u
+
+.bb row with hold
+
+.bb seated ohp
 
 .bb squats
 squats
+
+.c ab twists
+ab twists
+
+.c bayesian curl
+bayesian cable curl
+cable bayesian curl
+
+.c crunch
+cable crunch
+
+.c curl
+cable curl
+
+.c fly h-l
+cable crossover high to low
+cable fly high to low
+cable flyes high to low
+cable hl pec flys
+cable pull upper
+cable pulls upper
+
+.c fly l-h
+cable fly low to high
+cable flyes low to high
+cable pull lower
+cable pulls lower
+
+.c lat pulldowns backwards
+backwards dp lat pulls
+behind the back lat pull down
+
+.c lat pulldowns kneeling
+cable kneeing lat pulldown
+
+.c lateral raises
+cable lateral raise
+
+.c lateral raise behind the back
+cable behind the back lateral raise
+
+.c rdf high
+.c rdf
+cable 2 arm rdf
+cable rdf high
+cable rdfs
+
+.c rdf low
+cable rdf low
+
+.c rdf medium
+cable rdf medium
+
+.c row
+cable row
+cable low row
+cable row ng
+
+.c row lats
+cable row lats
+
+.c tri kickbacks
+cable tri kickback
+
+.c wrist ext
+cable wrist extension
+
+.c y raise
+cable y raise
+
+.db arnold press
+arnold press
+arnold
+arnolds
+
+.db around the world flyes
+around the world
+around the world flyes
+around the worlds
+
+.db around the world raise
+around the world raise
+
+.db bench
+bench db
+bp db
+
+.db bicep curl
+bicep curl db
+bicep curl
+
+.db bicep curl on bench
+bicep curl db  on bench
+bicep curl db on bench
+bicep curl on bench
+
+.db bss
+bss
+b split squats
+bsss
+bulgarian split squats
+bulgarians
+
+.db cross body hammer curl
+alt cross body curl
+alternating cross body hammer curl
+
+.m ab crunch
+ab crunch machine
+ab machine
+abs machine
+
+.m ab crunch free weight
+ab crunch free weight machine
+
+.m ab crunch obliques
+ab crunch obliques
+abdominal/oblique hammer str
+
+.m back ext
+back ext
+back extension
+back extension extension
+back extension machine
+bes
+
+.m bicep curl
+bicep curl machine
+
+.m hip abductor
+hip abductor
+ass abductor
+
