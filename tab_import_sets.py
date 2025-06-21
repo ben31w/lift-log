@@ -122,11 +122,15 @@ class TabImportSets(ttk.Frame):
         # TODO When a cell in the FILE COL is selected, display the selected file.
         # if content.column == FILE_COL_IDX:
 
-        # When a cell in DELETE COL is selected, delete the selected import.
+        # When a cell in DELETE COL is selected, confirm the user wants to delete
+        # the selected import.
         if content.column == DELETE_COL_IDX:
-            cell_note = self.sheet.props(content.row, content.column, "note")['note']
-            imprt_id = int(cell_note)  # str to int
-            self.delete_import_from_sheet(imprt_id, content.row)
+            proceed = messagebox.askokcancel("Warning", "Are you sure you want to delete this import?")
+            if proceed:
+                # The import_id is stored as a note within the delete column.
+                cell_note = self.sheet.props(content.row, content.column, "note")['note']
+                imprt_id = int(cell_note)  # str to int
+                self.delete_import_from_sheet(imprt_id, content.row)
 
     def update_sheet(self):
         # Update data in the sheet.
@@ -248,7 +252,6 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         event.widget.select_range(0, END)
         event.widget.icursor(END)
         return 'break'
-
 
     def import_html_file(self):
         """Import the HTML file that the user has selected."""
