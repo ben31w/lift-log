@@ -1,2 +1,12 @@
+# IDE-specific files
 .idea/*
+
+# Python files we don't care about
 __pycache__/*
+
+# Don't store decompressed HTML files in Git (this is user-specific)
+decompressed/*.html
+
+# Don't store .db files in Git (this is user-specific)
+# This program currently uses 'personal.db' for user data
+*.db

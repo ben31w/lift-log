@@ -10,6 +10,11 @@ from datetime import datetime
 from typing import Dict
 
 from exercise_set import ExerciseSet
+from utility import hash_html, compress_html
+
+# Methods for importing exercise sets, implemented and not-yet-implemented.
+HTML = 'HTML'
+APPLE_NOTES = 'Apple Notes'
 
 
 def create_tables():
@@ -19,6 +24,10 @@ def create_tables():
     """
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
+    # daily_sets
+    # This represents all the sets a user has logged for a particular exercise on a particular date.
+    # Ex: all bench press sets logged on 21 June 2025.
+    # -> ('bb bench', '2025-06-21', '2x8@135, 2x6@145', 1)
     # date is stored in SQLite as TEXT (YYYY-MM-DD).
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_sets(
@@ -28,15 +37,18 @@ def create_tables():
             import_id INTEGER
         )
     """)
+    # import
+    # When the user imports exercise sets, the instance is recorded in this table.
+    # file_hash is the content of the HTML file hashed. It's used for quick
+    #   comparisons to avoid duplicate imports.
+    # compressed_file_content is the content of the HTML compressed. It can be
+    #   easily decompressed when the user wants to view the file content.
     # date_time is stored in SQLite as TEXT (YYYY-MM-DD HH:MM:SS).
-    # file_content is the content of the file used for the import
-    # (for now, it's only used for HTML file content)
-    # method is TEXT that equals 'html' or 'apple'
     cur.execute("""
         CREATE TABLE IF NOT EXISTS import(
             date_time TEXT,
-            filepath TEXT,
-            file_content TEXT,
+            file_hash TEXT,
+            compressed_file_content BLOB,
             method TEXT
         )
     """)
@@ -52,11 +64,22 @@ def get_imports():
     """
     con = sqlite3.connect("personal.db")
     cur = con.cursor()
-    result = cur.execute("SELECT method, date_time, filepath, rowid FROM import")
-    imports = result.fetchall()
+    result = cur.execute("SELECT method, date_time, rowid FROM import")
+    imports = result.fetchall()  # fetch list of tuples
     cur.close()
     con.close()
     return imports
+
+
+def get_file_hash_and_content(import_row_id):
+    con = sqlite3.connect("personal.db")
+    cur = con.cursor()
+    result = cur.execute(f"SELECT file_hash, compressed_file_content FROM import WHERE rowid = {import_row_id}")
+    hash_and_content = result.fetchone()  # fetch 1 tuple
+    cur.close()
+    con.close()
+    return hash_and_content
+
 
 def delete_import(import_row_id):
     """
@@ -208,9 +231,8 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
         except ValueError:
             print(f"SKIPPING MALFORMED LINE. Double check weight or syntax: {second_split[i]}@{second_split[i + 1]}")
             continue
-
-
     return exercise_sets
+
 
 def get_alias_dict(alias_filepath: str):
     """
@@ -355,10 +377,14 @@ def import_sets_via_html(html_filepath, alias_filepath):
     daily_sets_list = []
     print(f"IMPORTING {html_filepath}")
 
+    # Get hash and compressed content of HTML file.
     with open(html_filepath, 'r') as f:
         content = f.read()
         # TODO check if content matches the content of a previous import, and ask the user if they want to proceed.
+    file_hash = hash_html(content)
+    compressed_content = compress_html(content)
 
+    # Parse the HTML file, and get a list of exercise sets to insert.
     with open(html_filepath, 'r') as f:
         parsing_exercises = False
         # curr_date = date.today()  # temp value
@@ -402,12 +428,12 @@ def import_sets_via_html(html_filepath, alias_filepath):
 
     cur.execute("BEGIN TRANSACTION")
 
-    # Insert import item
+    # Insert record into 'import' table
     now = datetime.today()
     now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
-    cur.execute(f"INSERT INTO import(date_time, filepath, file_content, method) VALUES('{now_str}', '{html_filepath}', '{content}', 'html')")
+    cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content, method) VALUES(?, ?, ?, ?)", (now_str, file_hash, compressed_content, HTML))
 
-    # Insert daily_sets items
+    # Insert records into 'daily_sets' table
     import_id = cur.lastrowid
     print(f"\ntime to insert: {daily_sets_list}")
     cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)

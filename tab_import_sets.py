@@ -6,12 +6,14 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
+import webbrowser
 
 from tksheet import Sheet
 
 from common import pad_frame
-from sql_utility import delete_import, get_imports, import_sets_via_html
+from sql_utility import delete_import, get_imports, import_sets_via_html, get_file_hash_and_content
 from tab_my_sets import TabMySets
+from utility import decompress_html
 
 # Column index is 0-based. These are the column indexes for the sheet of imports.
 FILE_COL_IDX = 2
@@ -119,15 +121,27 @@ class TabImportSets(ttk.Frame):
         content = event["selected"]
         cell_value = self.sheet.get_cell_data(content.row, content.column)
 
-        # TODO When a cell in the FILE COL is selected, display the selected file.
-        # if content.column == FILE_COL_IDX:
+        # When a cell in the FILE COL is selected, display the selected file.
+        # This creates an HTML file in the 'decompressed' directory, and opens
+        # the file in a web browser.
+        if content.column == FILE_COL_IDX:
+            # The import_id is stored as a note within this column.
+            cell_note = self.sheet.props(content.row, content.column, "note")['note']
+            imprt_id = int(cell_note)  # str to int
+
+            file_hash, file_compressed_content = get_file_hash_and_content(imprt_id)
+            html_content = decompress_html(file_compressed_content)
+            file_to_write = f'decompressed/ben31w_{file_hash}.html'
+            with open(file_to_write, 'w') as f:
+                f.write(html_content)
+            webbrowser.open(f"file://{os.path.abspath(file_to_write)}")
 
         # When a cell in DELETE COL is selected, confirm the user wants to delete
         # the selected import.
         if content.column == DELETE_COL_IDX:
             proceed = messagebox.askokcancel("Warning", "Are you sure you want to delete this import?")
             if proceed:
-                # The import_id is stored as a note within the delete column.
+                # The import_id is stored as a note within this column.
                 cell_note = self.sheet.props(content.row, content.column, "note")['note']
                 imprt_id = int(cell_note)  # str to int
                 self.delete_import_from_sheet(imprt_id, content.row)
@@ -143,16 +157,16 @@ class TabImportSets(ttk.Frame):
         """
         Return list that is used to populate the sheet.
 
-        This function ALSO double dips, and updates the notes for each cell in
-        the DELETE COL!!
+        This function ALSO double dips, and updates the notes for each cell!!
         :return: [[import1], [import2], ...]
         """
         sheet_data = []
         imports = get_imports()
         for i in range(len(imports)):
-            imprt_method, imprt_date_time, imprt_filepath, imprt_id = imports[i]
-            sheet_data.append([imprt_method, imprt_date_time, imprt_filepath, 'Delete'])
-            # Update notes in the DELETE COL
+            imprt_method, imprt_date_time, imprt_id = imports[i]
+            sheet_data.append([imprt_method, imprt_date_time, 'View', 'Delete'])
+            # Update notes: store the import ID in some cells.
+            self.sheet.note(i, FILE_COL_IDX, note=imprt_id)
             self.sheet.note(i, DELETE_COL_IDX, note=imprt_id)
         return sheet_data
 
