@@ -19,6 +19,9 @@ APPLE_NOTES = 'Apple Notes'
 # Filepath for the user's SQLite file
 SQLITE_FILE = "usr" + os.path.sep + "personal.db"
 
+# Filepath for the user's exercise aliases file
+ALIASES_FILE = "usr" + os.path.sep + "aliases.txt"
+
 def create_tables():
     """
     Create tables in SQLite if they don't already exist. There are no primary
@@ -236,7 +239,7 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
     return exercise_sets
 
 
-def get_alias_dict(alias_filepath: str):
+def get_alias_dict():
     """
     Return an alias dictionary from the given alias text file.
 
@@ -248,14 +251,14 @@ def get_alias_dict(alias_filepath: str):
     - 'bench' -> 'bb bench'
     - 'bench press' -> 'bb bench'
 
-    :param alias_filepath: path to alias text file.
     :return: alias dictionary
     """
     result = {}
-    if not os.path.exists(alias_filepath):
-        return result
 
-    with open(alias_filepath, 'r') as f:
+    # TODO validate format of alias file?
+    #  This could be done here, or when the user tries to save an invalid aliases file.
+
+    with open(ALIASES_FILE, 'r') as f:
         for line in f.readlines():
             line = line.strip()
             if line.startswith('#') or line == '':
@@ -361,17 +364,16 @@ def _sanitize_sets(ln: str) -> str:
     return result.strip()
 
 
-def import_sets_via_html(html_filepath, alias_filepath):
+def import_sets_via_html(html_filepath):
     """
     This function reads an HTML and alias TXT file, and inserts data into SQLite.
     It inserts all the daily_sets that can be parsed from the HTML file and
     an import item into SQLite.
 
     :param html_filepath:
-    :param alias_filepath:
     :return:
     """
-    alias_dict = get_alias_dict(alias_filepath)
+    alias_dict = get_alias_dict()
 
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
@@ -449,7 +451,7 @@ def import_sets_via_html(html_filepath, alias_filepath):
 # Temporary Testing Area
 if __name__ == '__main__':
     create_tables()
-    import_sets_via_html('my_workouts.html', 'aliases.txt')
+    import_sets_via_html(f'html{os.path.sep}my_workouts.html')
 
 
     print("---# OF SETS LOGGED FOR EACH EXERCISE---")

@@ -225,7 +225,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0, sticky=W)
         lbl_import_via_html = ttk.Label(row0,
-                                        text="Import sets with an HTML (required) and alias (TXT, optional) file.")
+                                        text="Import sets with an HTML file.")
         lbl_import_via_html.grid(row=0, column=0)
 
         # Container row 1
@@ -242,20 +242,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         # Container row 2
         row2 = ttk.Frame(self)
         row2.grid(row=2, column=0, sticky=W)
-        lbl_alias_filepath = ttk.Label(row2, text="Alias Filepath")
-        lbl_alias_filepath.grid(row=0, column=0)
-        self.entry_alias_filepath = ttk.Entry(row2, width=50)
-        self.entry_alias_filepath.bind("<Control-a>", self.select_all_text)
-        # default filepath (for now)
-        self.entry_alias_filepath.insert(0, "/home/ben31w/projects/lift-log/usr/aliases.txt")
-        self.entry_alias_filepath.grid(row=0, column=1)
-        btn_browse_alias = ttk.Button(row2, text="Browse", command=self.browse_alias_file)
-        btn_browse_alias.grid(row=0, column=2)
-
-        # Container row 3
-        row3 = ttk.Frame(self)
-        row3.grid(row=3, column=0, sticky=W)
-        btn_import_html = ttk.Button(row3, text="Import", command=self.import_html_file)
+        btn_import_html = ttk.Button(row2, text="Import", command=self.import_html_file)
         btn_import_html.grid(row=0, column=0)
 
         pad_frame(self)
@@ -268,14 +255,6 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         self.entry_html_filepath.delete(0, END)
         self.entry_html_filepath.insert(END, filename)
 
-    def browse_alias_file(self):
-        """Open window to browse for an alias (TXT) file."""
-        filename = filedialog.askopenfilename(filetypes=(("TXT files", "*.txt"), ("All files", "*.*")))
-        if len(filename) == 0:
-            return
-        self.entry_alias_filepath.delete(0, END)
-        self.entry_alias_filepath.insert(END, filename)
-
     def select_all_text(self, event : Event):
         """Select all text in the given Entry widget."""
         event.widget.select_range(0, END)
@@ -285,7 +264,6 @@ class SubTabImportSetsViaHTML(ttk.Frame):
     def import_html_file(self):
         """Import the HTML file that the user has selected."""
         html_file = self.entry_html_filepath.get()
-        alias_file = self.entry_alias_filepath.get()
 
         # First, validate the HTML file. The user cannot proceed without a valid HTML file.
         if not os.path.exists(html_file):
@@ -293,12 +271,9 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         elif len(html_file) > 5 and html_file[-5:] != '.html':
             messagebox.showerror("Error", f"'{html_file}' is not an HTML file.")
         else:
-            # Next, validate the alias file and check for duplicate HTML imports.
-            # These are non-critical warnings that the user can choose to ignore.
+            # Next, check for non-critical warnings that the user can choose to ignore:
+            # - duplicate HTML imports
             warning_msgs = []
-            if len(alias_file) > 0 and not os.path.exists(alias_file):
-                warning_msgs.append(f"Alias file '{alias_file}' does not exist.")
-            # TODO validate format of alias file.
             # TODO Check for duplicate HTML imports
 
             if len(warning_msgs) > 0:
@@ -311,7 +286,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
                 proceed = True
 
             if proceed:
-                import_sets_via_html(html_file, alias_file)
+                import_sets_via_html(html_file)
                 self.tab_my_sets.update_exercises()
                 self.tab_import_sets.update_sheet()
 
