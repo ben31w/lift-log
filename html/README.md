@@ -1,0 +1,1 @@
+This directory contains sample HTML files that can be imported.

@@ -69,15 +69,15 @@ class TabImportSets(ttk.Frame):
         # Container row 4
         row4 = ttk.Frame(self)
         row4.grid(row=4, column=0, sticky=W)
-        lbl_delete_imports_title = ttk.Label(row4, text="Delete Imports")
-        lbl_delete_imports_title.grid(row=0, column=0)
+        lbl_manage_imports_title = ttk.Label(row4, text="Manage Imports")
+        lbl_manage_imports_title.grid(row=0, column=0)
 
         # Container row 5
         row5 = ttk.Frame(self)
         row5.grid(row=5, column=0, sticky=W)
-        lbl_delete_imports_desc = ttk.Label(row5,
-                                            text="You can view all your imports and delete them here.")
-        lbl_delete_imports_desc.grid(row=0, column=0)
+        lbl_manage_imports_desc = ttk.Label(row5,
+                                            text="You can view and delete your imports here.")
+        lbl_manage_imports_desc.grid(row=0, column=0)
 
         # Container row 6
         # The sheet displays the method, date time, file, and delete button for each of the user's imports.
@@ -87,8 +87,8 @@ class TabImportSets(ttk.Frame):
         row6.grid(row=6, column=0, sticky=W)
         self.sheet = Sheet(row6,
                            theme="light green",
-                           height=250,
-                           width=1200,
+                           height=200,
+                           width=600,
                            headers=["Method", "Date Time", "File", "Delete"]
                            )
         self.sheet.enable_bindings(
@@ -110,7 +110,22 @@ class TabImportSets(ttk.Frame):
         self.sheet.grid(row=0, column=0)
 
         pad_frame(self)
-        pad_frame(row1)
+        # pad_frame(row1)
+
+        # Container row 7
+        row7 = ttk.Frame(self)
+        row7.grid(row=7, column=0, sticky=W)
+        lbl_manage_exercise_aliases_title = ttk.Label(row7, text="Manage Exercise Aliases")
+        lbl_manage_exercise_aliases_title.grid(row=0, column=0)
+
+        # Container row 8
+        row8 = ttk.Frame(self)
+        row8.grid(row=8, column=0, sticky=W)
+        lbl_manage_exercise_aliases_desc = ttk.Label(row8,
+                                                     text="You can manage your exercise aliases here.")
+        lbl_manage_exercise_aliases_desc.grid(row=0, column=0)
+        btn_manage_exercise_aliases = ttk.Button(row8, text="Manage")
+        btn_manage_exercise_aliases.grid(row=0, column=1)
 
     def on_cell_select(self, event):
         """
@@ -122,7 +137,7 @@ class TabImportSets(ttk.Frame):
         cell_value = self.sheet.get_cell_data(content.row, content.column)
 
         # When a cell in the FILE COL is selected, display the selected file.
-        # This creates an HTML file in the 'decompressed' directory, and opens
+        # This creates an HTML file in the usr directory, and opens
         # the file in a web browser.
         if content.column == FILE_COL_IDX:
             # The import_id is stored as a note within this column.
@@ -131,7 +146,7 @@ class TabImportSets(ttk.Frame):
 
             file_hash, file_compressed_content = get_file_hash_and_content(imprt_id)
             html_content = decompress_html(file_compressed_content)
-            file_to_write = f'decompressed/ben31w_{file_hash}.html'
+            file_to_write = f'usr{os.path.sep}ben31w_{file_hash}.html'
             with open(file_to_write, 'w') as f:
                 f.write(html_content)
             webbrowser.open(f"file://{os.path.abspath(file_to_write)}")
@@ -232,7 +247,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         self.entry_alias_filepath = ttk.Entry(row2, width=50)
         self.entry_alias_filepath.bind("<Control-a>", self.select_all_text)
         # default filepath (for now)
-        self.entry_alias_filepath.insert(0, "/home/ben31w/projects/lift-log/html/aliases.txt")
+        self.entry_alias_filepath.insert(0, "/home/ben31w/projects/lift-log/usr/aliases.txt")
         self.entry_alias_filepath.grid(row=0, column=1)
         btn_browse_alias = ttk.Button(row2, text="Browse", command=self.browse_alias_file)
         btn_browse_alias.grid(row=0, column=2)

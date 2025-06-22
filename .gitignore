@@ -4,9 +4,7 @@
 # Python files we don't care about
 __pycache__/*
 
-# Don't store decompressed HTML files in Git (this is user-specific)
-decompressed/*.html
-
-# Don't store .db files in Git (this is user-specific)
-# This program currently uses 'personal.db' for user data
-*.db
+# User-specific files aren't stored in Git.
+# (although we are storing the alias file, which is intended to be user-specific at some point)
+usr/*.html
+usr/*.db

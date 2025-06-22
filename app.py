@@ -6,7 +6,7 @@ from tab_import_sets import TabImportSets
 from tab_my_sets import TabMySets
 
 WINDOW_HEIGHT = 1080
-WINDOW_WIDTH = 1700
+WINDOW_WIDTH = 1750
 
 class LiftLog(Tk):
     def __init__(self, *args, **kwargs):

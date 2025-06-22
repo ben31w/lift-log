@@ -16,13 +16,15 @@ from utility import hash_html, compress_html
 HTML = 'HTML'
 APPLE_NOTES = 'Apple Notes'
 
+# Filepath for the user's SQLite file
+SQLITE_FILE = "usr" + os.path.sep + "personal.db"
 
 def create_tables():
     """
     Create tables in SQLite if they don't already exist. There are no primary
     keys because SQLite automatically creates the ROWID field for every item.
     """
-    con = sqlite3.connect("personal.db")
+    con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     # daily_sets
     # This represents all the sets a user has logged for a particular exercise on a particular date.
@@ -62,7 +64,7 @@ def get_imports():
     Retrieve import items from SQLite, and return them as a list of tuples.
     This only returns the relevant fields needed to build the imports table.
     """
-    con = sqlite3.connect("personal.db")
+    con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     result = cur.execute("SELECT method, date_time, rowid FROM import")
     imports = result.fetchall()  # fetch list of tuples
@@ -72,7 +74,7 @@ def get_imports():
 
 
 def get_file_hash_and_content(import_row_id):
-    con = sqlite3.connect("personal.db")
+    con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     result = cur.execute(f"SELECT file_hash, compressed_file_content FROM import WHERE rowid = {import_row_id}")
     hash_and_content = result.fetchone()  # fetch 1 tuple
@@ -86,7 +88,7 @@ def delete_import(import_row_id):
     Delete the given import and all daily_sets associated with the import.
     :return:
     """
-    con = sqlite3.connect("personal.db")
+    con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     cur.execute(f"DELETE FROM import WHERE rowid = {import_row_id}")
     cur.execute(f"DELETE FROM daily_sets WHERE import_id = {import_row_id}")
@@ -108,7 +110,7 @@ def get_exercise_sets_dict():
     exercise name (string) -> [individual sets associated with the exercise (ExerciseSet objects)]
     """
     print("\nBuilding Exercise-Sets Dictionary")
-    con = sqlite3.connect("personal.db")
+    con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     exercise_sets_dict = {}
 
@@ -371,7 +373,7 @@ def import_sets_via_html(html_filepath, alias_filepath):
     """
     alias_dict = get_alias_dict(alias_filepath)
 
-    con = sqlite3.connect("personal.db")
+    con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
 
     daily_sets_list = []
