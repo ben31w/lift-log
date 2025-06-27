@@ -6,21 +6,25 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.constants import END, INSERT, NSEW, SEL
 
-from sql_utility import ALIASES_FILE
+from sql_utility import ALIASES_FILE, update_daily_sets_to_alias
 
 WINDOW_HEIGHT = 100
 WINDOW_WIDTH = 100
 
 class WindowAliasEditor(Toplevel):
-    def __init__(self, tab_import_sets):
+    def __init__(self, tab_import_sets, tab_my_sets):
         """
         A window for the exercise alias editor.
 
         :param tab_import_sets: a reference to the Import Sets tab is needed
                to allow only one instance of this window to be open.
+        :param tab_my_sets: a reference to the My Sets tab is needed
+               to update exercises.
         """
         super().__init__()
         self.tab_import_sets = tab_import_sets
+        self.tab_my_sets = tab_my_sets
+
         self.tab_import_sets.alias_editor_is_open = True
 
         # Row 0
@@ -79,7 +83,9 @@ class WindowAliasEditor(Toplevel):
         after_edits = self.edit_area.get("1.0", END).strip()
         with open(ALIASES_FILE, 'w') as f:
             f.write(after_edits)
-        # TODO re-import with new aliases
+
+        update_daily_sets_to_alias()  # update SQLite
+        self.tab_my_sets.update_exercises() # update My Sets tab
 
     def close_window(self):
         # Check if the file has been modified, and ask the user if they want to
@@ -95,7 +101,7 @@ class WindowAliasEditor(Toplevel):
                 return
             if save_before_exit:
                 self.save()
-        # Close this window
+        # Close this window TODO not reaching here
         self.tab_import_sets.alias_editor_is_open = False
         self.destroy()
 

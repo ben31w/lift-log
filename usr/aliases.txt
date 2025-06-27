@@ -10,12 +10,12 @@
 # Lines with text are an exercise name.
 # Blank lines are ignored.
 
-# When you click 'Save', your existing exercise sets will be updated according to this file :)
+# When you click 'Save', your existing exercise sets will be updated according to this file :) 
 
 .bb bench
-bench
-bench press
-bp
+#bench
+#bench press
+#bp
 
 .bb bench pause reps
 bench pause reps

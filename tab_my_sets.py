@@ -1,7 +1,7 @@
 """
 All functions and classes related to the 'My Sets' tab.
 """
-from datetime import date
+from datetime import date, timedelta
 from tkinter import *
 from tkinter import ttk
 from typing import Dict
@@ -249,8 +249,8 @@ class TabMySets(ttk.Frame):
         # are the same. This isn't the behavior we want, so there is a check
         # for identical axis limits.
         if start_date == end_date:
-            start_date = start_date.replace(day=start_date.day - 1)
-            end_date = end_date.replace(day=end_date.day + 1)
+            start_date = start_date - timedelta(days=1)
+            end_date = end_date + timedelta(days=1)
         # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
         interval = int((end_date - start_date).days / 10) + 1
         ax.set_xlim(left=start_date, right=end_date)

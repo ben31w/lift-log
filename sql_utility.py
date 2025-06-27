@@ -328,10 +328,7 @@ def _parse_exercise(ln: str, alias_dict: Dict) -> str:
 
     # Check if this exercise is in the alias dict. If so, use the common name
     if result in alias_dict.keys():
-        # print("UseAlias")
         result = alias_dict[result]
-    # else:
-    #     print("DontAlias")
     return result
 
 
@@ -364,11 +361,17 @@ def _sanitize_sets(ln: str) -> str:
     return result.strip()
 
 
-def import_sets_via_html(html_filepath):
+def import_sets_via_html(html_filepath, update=False):
     """
-    This function reads an HTML and alias TXT file, and inserts data into SQLite.
-    It inserts all the daily_sets that can be parsed from the HTML file and
+    This function reads an HTML file, and either inserts data into SQLite,
+    or updates data in SQLite if the update parameter is True.
+
+    If inserting (update=False),
+    it inserts all the daily_sets that can be parsed from the HTML file and
     an import item into SQLite.
+
+    If updating (update=True),
+    it updates all the daily_sets that can be parsed from the HTML file.
 
     :param html_filepath:
     :return:
@@ -432,15 +435,56 @@ def import_sets_via_html(html_filepath):
 
     cur.execute("BEGIN TRANSACTION")
 
-    # Insert record into 'import' table
-    now = datetime.today()
-    now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
-    cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content, method) VALUES(?, ?, ?, ?)", (now_str, file_hash, compressed_content, HTML))
+    # INSERT INTO SQLITE
+    if not update:
+        # Insert record into 'import' table
+        now = datetime.today()
+        now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
+        cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content, method) VALUES(?, ?, ?, ?)", (now_str, file_hash, compressed_content, HTML))
 
-    # Insert records into 'daily_sets' table
-    import_id = cur.lastrowid
-    print(f"\ntime to insert: {daily_sets_list}")
-    cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
+        # Insert records into 'daily_sets' table
+        import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
+        print(f"\ntime to insert: {daily_sets_list}")
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
+    # UPDATE SQLITE
+    else:
+        # TODO not finished
+        result = cur.execute("SELECT exercise FROM daily_sets")
+        curr_daily_sets_exercises = result.fetchall()
+        new_daily_sets_exercises = [item[0] for item in daily_sets_list]
+        print(f"\ntime to update: {new_daily_sets_exercises}")
+
+
+    con.commit()
+    cur.close()
+    con.close()
+
+
+def update_daily_sets_to_alias():
+    """Update the exercise of each daily_sets record to match the current alias file."""
+    # TODO this function isn't completely right. It will update existing exercises
+    # if new exercises are 'aliased', but it doesn't update existing exercises
+    # if exercises are 'unaliased' (i.e., removed from aliases.txt)
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    alias_dict = get_alias_dict()
+    result = cur.execute("SELECT exercise FROM daily_sets")
+    daily_sets_curr_exercises = result.fetchall()  # [('exercise1',), ('exercise2',)]
+    daily_sets_new_exercises = []                  # [('new_exercise1',), ('new_exercise2',)]
+
+    # Loop through daily_sets, and update all exercises according to aliases
+    for record in daily_sets_curr_exercises:
+        # Check if this exercise is in the alias dict. If so, use the common name
+        exercise = record[0]  # extract exercise from tuple
+        print(exercise)
+        if exercise in alias_dict.keys():
+            exercise = alias_dict[exercise]
+            print(f"  Resolving to common exercise: {exercise}")
+        daily_sets_new_exercises.append((exercise,))  # add the exercise as a tuple
+
+    cur.execute("BEGIN TRANSACTION")
+    cur.executemany("UPDATE daily_sets SET exercise = ?", daily_sets_new_exercises)
 
     con.commit()
     cur.close()

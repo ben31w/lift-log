@@ -214,7 +214,7 @@ class TabImportSets(ttk.Frame):
 
     def open_alias_editor(self):
         if not self.alias_editor_is_open:
-            WindowAliasEditor(self)
+            WindowAliasEditor(self, self.tab_my_sets)
 
 
 class SubTabImportSetsViaHTML(ttk.Frame):
