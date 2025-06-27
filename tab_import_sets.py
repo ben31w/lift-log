@@ -14,6 +14,7 @@ from common import pad_frame
 from sql_utility import delete_import, get_imports, import_sets_via_html, get_file_hash_and_content
 from tab_my_sets import TabMySets
 from utility import decompress_html
+from window_alias_editor import WindowAliasEditor
 
 # Column index is 0-based. These are the column indexes for the sheet of imports.
 FILE_COL_IDX = 2
@@ -124,8 +125,13 @@ class TabImportSets(ttk.Frame):
         lbl_manage_exercise_aliases_desc = ttk.Label(row8,
                                                      text="You can manage your exercise aliases here.")
         lbl_manage_exercise_aliases_desc.grid(row=0, column=0)
-        btn_manage_exercise_aliases = ttk.Button(row8, text="Manage")
-        btn_manage_exercise_aliases.grid(row=0, column=1)
+
+        # Container row 9
+        row9 = ttk.Frame(self)
+        row9.grid(row=9, column=0, sticky=W)
+        self.alias_editor_is_open = False
+        btn_manage_exercise_aliases = ttk.Button(row9, text="Manage", command=lambda: self.open_alias_editor())
+        btn_manage_exercise_aliases.grid(row=0, column=0)
 
     def on_cell_select(self, event):
         """
@@ -205,6 +211,10 @@ class TabImportSets(ttk.Frame):
         self.sheet.delete_row(sheet_row)
         self.update_sheet()
         self.tab_my_sets.update_exercises()
+
+    def open_alias_editor(self):
+        if not self.alias_editor_is_open:
+            WindowAliasEditor(self)
 
 
 class SubTabImportSetsViaHTML(ttk.Frame):

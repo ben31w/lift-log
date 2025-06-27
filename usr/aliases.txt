@@ -1,9 +1,16 @@
 # ALIAS FILE
-# This file can be used to resolve multiple exercise name to one common name.
+# This file can be used to resolve multiple exercise names to one common name.
+# For example, you may have referred to the bench press by several different
+# names in your notes (bench, bench press, bp, etc.). This file provides a
+# way to resolve to a common name and ensure all your sets are logged to the
+# same exercise.
+
 # Lines starting with '#' are comments (comments must be on their own line)
 # Lines starting with '.' indicate the start of an alias group.
 # Lines with text are an exercise name.
 # Blank lines are ignored.
+
+# When you click 'Save', your existing exercise sets will be updated according to this file :)
 
 .bb bench
 bench
@@ -190,4 +197,3 @@ bicep curl machine
 .m hip abductor
 hip abductor
 ass abductor
-
