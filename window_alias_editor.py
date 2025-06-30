@@ -30,7 +30,7 @@ class WindowAliasEditor(Toplevel):
         # Row 0
         row0 = ttk.Frame(self)
         row0.grid(row=0, column=0)
-        btn_save = ttk.Button(row0, text="Save")
+        btn_save = ttk.Button(row0, text="Save", command=self.save)
         btn_save.grid(row=0, column=0)
 
         # Row 1
