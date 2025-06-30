@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Dict
 
 from exercise_set import ExerciseSet
-from utility import hash_html, compress_html
+from utility import hash_html, compress_html, decompress_html
 
 # Methods for importing exercise sets, implemented and not-yet-implemented.
 HTML = 'HTML'
@@ -361,19 +361,15 @@ def _sanitize_sets(ln: str) -> str:
     return result.strip()
 
 
-def import_sets_via_html(html_filepath, update=False):
+def import_sets_via_html(html_filepath, existing_import_id=None):
     """
-    This function reads an HTML file, and either inserts data into SQLite,
-    or updates data in SQLite if the update parameter is True.
+    This function reads an HTML file and inserts data into SQLite.
 
-    If inserting (update=False),
-    it inserts all the daily_sets that can be parsed from the HTML file and
-    an import item into SQLite.
-
-    If updating (update=True),
-    it updates all the daily_sets that can be parsed from the HTML file.
-
-    :param html_filepath:
+    :param html_filepath: HTML file to read
+    :param existing_import_id: if not provided, an import record will be generated, and
+        the sets will have an import ID that matches the new import.
+        If provided, an import record will not be generated, and the sets will
+        be tied to the provided import ID.
     :return:
     """
     alias_dict = get_alias_dict()
@@ -436,7 +432,7 @@ def import_sets_via_html(html_filepath, update=False):
     cur.execute("BEGIN TRANSACTION")
 
     # INSERT INTO SQLITE
-    if not update:
+    if existing_import_id is None:
         # Insert record into 'import' table
         now = datetime.today()
         now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
@@ -446,14 +442,11 @@ def import_sets_via_html(html_filepath, update=False):
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
         print(f"\ntime to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
-    # UPDATE SQLITE
     else:
-        # TODO not finished
-        result = cur.execute("SELECT exercise FROM daily_sets")
-        curr_daily_sets_exercises = result.fetchall()
-        new_daily_sets_exercises = [item[0] for item in daily_sets_list]
-        print(f"\ntime to update: {new_daily_sets_exercises}")
-
+        # No new record will be inserted into 'import' table.
+        # Insert records into 'daily_sets' table with the provided import_id
+        print(f"\ntime to insert: {daily_sets_list}")
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
 
     con.commit()
     cur.close()
@@ -462,33 +455,44 @@ def import_sets_via_html(html_filepath, update=False):
 
 def update_daily_sets_to_alias():
     """Update the exercise of each daily_sets record to match the current alias file."""
-    # TODO this function isn't completely right. It will update existing exercises
-    # if new exercises are 'aliased', but it doesn't update existing exercises
-    # if exercises are 'unaliased' (i.e., removed from aliases.txt)
+    # We have to open and close a lot of connections because this function calls
+    # a function that opens/closes a connection.
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
 
-    alias_dict = get_alias_dict()
-    result = cur.execute("SELECT exercise FROM daily_sets")
-    daily_sets_curr_exercises = result.fetchall()  # [('exercise1',), ('exercise2',)]
-    daily_sets_new_exercises = []                  # [('new_exercise1',), ('new_exercise2',)]
+    result = cur.execute("SELECT rowid, compressed_file_content, file_hash FROM import")
+    imports = result.fetchall()
 
-    # Loop through daily_sets, and update all exercises according to aliases
-    for record in daily_sets_curr_exercises:
-        # Check if this exercise is in the alias dict. If so, use the common name
-        exercise = record[0]  # extract exercise from tuple
-        print(exercise)
-        if exercise in alias_dict.keys():
-            exercise = alias_dict[exercise]
-            print(f"  Resolving to common exercise: {exercise}")
-        daily_sets_new_exercises.append((exercise,))  # add the exercise as a tuple
-
-    cur.execute("BEGIN TRANSACTION")
-    cur.executemany("UPDATE daily_sets SET exercise = ?", daily_sets_new_exercises)
-
-    con.commit()
     cur.close()
     con.close()
+
+    # For each import:
+    # - remember the ID
+    # - delete daily_sets with this ID
+    # - Decompress the HTML file associated with the import
+    #    - also need to write the decompressed content to a new file so it can be opened.
+    # - Parse the file and get daily_sets
+    # - INSERT INTO daily_sets while maintaining the ID
+    for imprt in imports:
+        con = sqlite3.connect(SQLITE_FILE)
+        cur = con.cursor()
+
+        imprt_id, compressed_file_content, file_hash = imprt
+        cur.execute(f"DELETE FROM daily_sets WHERE import_id = {imprt_id}")
+
+        con.commit()
+        cur.close()
+        con.close()
+
+        # TODO refactor into a function? Similar code is in tab_import_sets
+        # Decompress the compressed file content/get file content.
+        # Then write the file content to a file that can be read by import_sets_via_html.
+        html_content = decompress_html(compressed_file_content)
+        file_to_write = f'usr{os.path.sep}ben31w_{file_hash}.html'
+        with open(file_to_write, 'w') as f:
+            f.write(html_content)
+
+        import_sets_via_html(html_filepath=file_to_write, existing_import_id=imprt_id)
 
 
 
