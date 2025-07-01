@@ -129,6 +129,16 @@ class TabMySets(ttk.Frame):
         selected_exercise = self.combobox.get()
         if selected_exercise == '':
             return
+        if selected_exercise not in self.esd.keys():
+            # This case only occurs when the aliases are updated and exercises
+            # are merged.
+            self.text_area.configure(state="normal")
+            self.text_area.delete("1.0", END)
+            self.text_area.configure(state="disabled")
+            self.combobox.selection_clear()
+            for widget in self.plot_grid.winfo_children():
+                widget.destroy()
+            return
 
         self.update_text_area()
         self.show_plots(event)

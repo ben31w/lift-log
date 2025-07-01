@@ -11,9 +11,8 @@ import webbrowser
 from tksheet import Sheet
 
 from common import pad_frame
-from sql_utility import delete_import, get_imports, import_sets_via_html, get_file_hash_and_content
+from sql_utility import decompress_and_write_html, delete_import, get_imports, import_sets_via_html
 from tab_my_sets import TabMySets
-from utility import decompress_html
 from window_alias_editor import WindowAliasEditor
 
 # Column index is 0-based. These are the column indexes for the sheet of imports.
@@ -150,11 +149,7 @@ class TabImportSets(ttk.Frame):
             cell_note = self.sheet.props(content.row, content.column, "note")['note']
             imprt_id = int(cell_note)  # str to int
 
-            file_hash, file_compressed_content = get_file_hash_and_content(imprt_id)
-            html_content = decompress_html(file_compressed_content)
-            file_to_write = f'usr{os.path.sep}ben31w_{file_hash}.html'
-            with open(file_to_write, 'w') as f:
-                f.write(html_content)
+            file_to_write = decompress_and_write_html(imprt_id)
             webbrowser.open(f"file://{os.path.abspath(file_to_write)}")
 
         # When a cell in DELETE COL is selected, confirm the user wants to delete

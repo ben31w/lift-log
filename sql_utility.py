@@ -460,7 +460,7 @@ def update_daily_sets_to_alias():
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
 
-    result = cur.execute("SELECT rowid, compressed_file_content, file_hash FROM import")
+    result = cur.execute("SELECT rowid FROM import")
     imports = result.fetchall()
 
     cur.close()
@@ -477,23 +477,31 @@ def update_daily_sets_to_alias():
         con = sqlite3.connect(SQLITE_FILE)
         cur = con.cursor()
 
-        imprt_id, compressed_file_content, file_hash = imprt
+        imprt_id = imprt[0]
         cur.execute(f"DELETE FROM daily_sets WHERE import_id = {imprt_id}")
 
         con.commit()
         cur.close()
         con.close()
 
-        # TODO refactor into a function? Similar code is in tab_import_sets
-        # Decompress the compressed file content/get file content.
-        # Then write the file content to a file that can be read by import_sets_via_html.
-        html_content = decompress_html(compressed_file_content)
-        file_to_write = f'usr{os.path.sep}ben31w_{file_hash}.html'
-        with open(file_to_write, 'w') as f:
-            f.write(html_content)
-
+        file_to_write = decompress_and_write_html(imprt_id)
         import_sets_via_html(html_filepath=file_to_write, existing_import_id=imprt_id)
 
+
+def decompress_and_write_html(import_id: int) -> str:
+    """
+    Given an import rowid, decompress the file associated with the import,
+    write the decompression to a new file, and return the path to that file.
+
+    :param import_id: rowid of an 'import' record
+    :return: path to decompressed HTML file
+    """
+    file_hash, file_compressed_content = get_file_hash_and_content(import_id)
+    html_content = decompress_html(file_compressed_content)
+    file_to_write = f'usr{os.path.sep}ben31w_{file_hash}.html'
+    with open(file_to_write, 'w') as f:
+        f.write(html_content)
+    return file_to_write
 
 
 # Temporary Testing Area
