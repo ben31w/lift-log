@@ -75,6 +75,19 @@ def get_imports():
     con.close()
     return imports
 
+def get_import_file_hashes_only():
+    """
+    Retrieve only file hashes of all import records in SQLite.
+    :return: [('filehash1',), ('filehash2',)]
+    """
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+    result = cur.execute("SELECT file_hash FROM import")
+    imports = result.fetchall()  # fetch list of tuples
+    cur.close()
+    con.close()
+    return imports
+
 
 def get_file_hash_and_content(import_row_id):
     con = sqlite3.connect(SQLITE_FILE)
@@ -383,14 +396,12 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
     # Get hash and compressed content of HTML file.
     with open(html_filepath, 'r') as f:
         content = f.read()
-        # TODO check if content matches the content of a previous import, and ask the user if they want to proceed.
     file_hash = hash_html(content)
     compressed_content = compress_html(content)
 
     # Parse the HTML file, and get a list of exercise sets to insert.
     with open(html_filepath, 'r') as f:
         parsing_exercises = False
-        # curr_date = date.today()  # temp value
 
         for line_num, line in enumerate(f.readlines(), start=1):
             line = line.lower().strip()

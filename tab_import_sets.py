@@ -11,8 +11,11 @@ import webbrowser
 from tksheet import Sheet
 
 from common import pad_frame
-from sql_utility import decompress_and_write_html, delete_import, get_imports, import_sets_via_html
+from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
+    get_imports, import_sets_via_html
+
 from tab_my_sets import TabMySets
+from utility import hash_html
 from window_alias_editor import WindowAliasEditor
 
 # Column index is 0-based. These are the column indexes for the sheet of imports.
@@ -279,7 +282,8 @@ class SubTabImportSetsViaHTML(ttk.Frame):
             # Next, check for non-critical warnings that the user can choose to ignore:
             # - duplicate HTML imports
             warning_msgs = []
-            # TODO Check for duplicate HTML imports
+            if self.file_already_imported(html_file):
+                warning_msgs.append("This HTML file has already been imported. If you import this, you will have duplicate exercise sets.")
 
             if len(warning_msgs) > 0:
                 full_warning = ""
@@ -294,4 +298,19 @@ class SubTabImportSetsViaHTML(ttk.Frame):
                 import_sets_via_html(html_file)
                 self.tab_my_sets.update_exercises()
                 self.tab_import_sets.update_sheet()
+
+    def file_already_imported(self, html_filepath) -> bool:
+        """
+        Return true if the given HTML file is already imported, i.e., the
+        file hash matches a file hash already there.
+        :param html_filepath:
+        :return: True/False
+        """
+        with open(html_filepath, 'r') as f:
+            file_content = f.read()
+        file_hash = hash_html(file_content)
+
+        # Extract list of strings from list of tuples.
+        file_hashes = [item[0] for item in get_import_file_hashes_only()]
+        return file_hash in file_hashes
 
