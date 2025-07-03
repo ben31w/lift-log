@@ -9,8 +9,8 @@ from datetime import date
 from datetime import datetime
 from typing import Dict
 
+from common import hash_html, compress_html, decompress_html
 from exercise_set import ExerciseSet
-from utility import hash_html, compress_html, decompress_html
 
 # Methods for importing exercise sets, implemented and not-yet-implemented.
 HTML = 'HTML'

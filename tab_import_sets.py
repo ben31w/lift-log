@@ -10,12 +10,10 @@ import webbrowser
 
 from tksheet import Sheet
 
-from common import pad_frame
+from common import hash_html, pad_frame
 from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
     get_imports, import_sets_via_html
-
 from tab_my_sets import TabMySets
-from utility import hash_html
 from window_alias_editor import WindowAliasEditor
 
 # Column index is 0-based. These are the column indexes for the sheet of imports.
