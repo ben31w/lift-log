@@ -2,6 +2,7 @@
 All functions and classes related to the 'My Sets' tab.
 """
 from datetime import date, timedelta
+import logging
 from tkinter import *
 from tkinter import ttk
 from typing import Dict
@@ -17,6 +18,8 @@ from tkcalendar import DateEntry
 from common import pad_frame
 from exercise_set import ExerciseSet
 from sql_utility import get_exercise_sets_dict
+
+logger = logging.getLogger(__name__)
 
 def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> str:
     """
@@ -113,8 +116,6 @@ class TabMySets(ttk.Frame):
         """
         self.esd = get_exercise_sets_dict()
         exercises = sorted(list(self.esd.keys()))
-        print("EXERCISES")
-        print(exercises)
         self.combobox['values'] = exercises
         self.combobox.bind("<<ComboboxSelected>>", self.filter_sets)
         # This spoofs the 'combobox selected event' to force a refresh.
@@ -154,10 +155,10 @@ class TabMySets(ttk.Frame):
         date_sets_list_dict: Dict[date, list[ExerciseSet]] = {}  # {2024-10-10: [set1, set2]}
 
         # Build dict from list of sets
-        print("\nfiltering sets")
+        logger.info("filtering sets")
         for the_set in list_sets:
             the_date = the_set.date
-            print(the_set)
+            logger.info(the_set)
 
             if the_date not in date_sets_list_dict.keys():
                 # Filter list of sets to this date. Add this list to the dict.
@@ -203,8 +204,7 @@ class TabMySets(ttk.Frame):
             start_date = min([s.date for s in self.esd[selected_exercise]])
         if end_date is None:
             end_date = max([s.date for s in self.esd[selected_exercise]])
-        print(start_date)
-        print(end_date)
+        logger.info(f"start_date: {start_date}  | end_date: {end_date}")
         date_filtered_sets = [s for s in self.esd[selected_exercise] if
                               start_date <= s.date <= end_date]
 

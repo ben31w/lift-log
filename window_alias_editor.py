@@ -5,6 +5,7 @@ from tkinter import TclError, Text, Toplevel
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.constants import END, INSERT, NSEW, SEL
+from tkinter.scrolledtext import ScrolledText
 
 from sql_utility import ALIASES_FILE, update_daily_sets_to_alias
 
@@ -36,13 +37,10 @@ class WindowAliasEditor(Toplevel):
         # Row 1
         row1 = ttk.Frame(self)
         row1.grid(row=1, column=0)
-        self.edit_area = Text(row1, undo=True, height=40, width=120)
+        self.edit_area = ScrolledText(row1, undo=True, height=40, width=120)
         with open(ALIASES_FILE, 'r') as f:
             self.edit_area.insert(END, f.read())
         self.edit_area.grid(row=0, column=0)
-        scrollbar = ttk.Scrollbar(row1, command=self.edit_area.yview)
-        scrollbar.grid(row=0, column=1, sticky=NSEW)
-        self.edit_area['yscrollcommand'] = scrollbar.set
 
         # Key bindings for the edit area
         # Prevent default Ctrl+Y paste

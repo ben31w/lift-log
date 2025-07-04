@@ -1,11 +1,13 @@
 """
 All functions and classes related to the 'Import Sets' tab.
 """
+import logging
 import os
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 import webbrowser
 
 from tksheet import Sheet
@@ -15,6 +17,8 @@ from sql_utility import decompress_and_write_html, delete_import, get_import_fil
     get_imports, import_sets_via_html
 from tab_my_sets import TabMySets
 from window_alias_editor import WindowAliasEditor
+
+logger = logging.getLogger(__name__)
 
 # Column index is 0-based. These are the column indexes for the sheet of imports.
 FILE_COL_IDX = 2
@@ -60,12 +64,9 @@ class TabImportSets(ttk.Frame):
         # Container row 3
         row3 = ttk.Frame(self)
         row3.grid(row=3, column=0, sticky=W)
-        status_msg_area = Text(row3, height=20, width=170)
+        status_msg_area = ScrolledText(row3, height=20, width=170)
         status_msg_area.configure(state='disabled')  # user can't type here.
         status_msg_area.grid(row=0, column=0)
-        scrollbar = ttk.Scrollbar(row3, command=status_msg_area.yview)
-        scrollbar.grid(row=0, column=1, sticky=NSEW)
-        status_msg_area['yscrollcommand'] = scrollbar.set
 
         # Container row 4
         row4 = ttk.Frame(self)

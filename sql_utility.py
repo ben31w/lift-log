@@ -1,7 +1,7 @@
 """
 Contains utility functions for interacting with the SQLite database.
 """
-
+import logging
 import math
 import os.path
 import sqlite3
@@ -11,6 +11,8 @@ from typing import Dict
 
 from common import hash_html, compress_html, decompress_html
 from exercise_set import ExerciseSet
+
+logger = logging.getLogger(__name__)
 
 # Methods for importing exercise sets, implemented and not-yet-implemented.
 HTML = 'HTML'
@@ -125,7 +127,7 @@ def get_exercise_sets_dict():
     The exercise-sets dictionary maps
     exercise name (string) -> [individual sets associated with the exercise (ExerciseSet objects)]
     """
-    print("\nBuilding Exercise-Sets Dictionary")
+    logger.info("Building Exercise-Sets Dictionary")
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     exercise_sets_dict = {}
@@ -133,14 +135,14 @@ def get_exercise_sets_dict():
     result = cur.execute("SELECT exercise, date, string FROM daily_sets")
     all_daily_sets_items = result.fetchall()
     for item in all_daily_sets_items:
-        print(f'daily_sets item: {item}')
+        logger.info(f'daily_sets item: {item}')
         # Convert daily_sets item in SQLite to ExerciseSet objects in Python
         individual_exercise_sets = get_exercise_sets_from_daily_sets(item)
 
         # Now add those ExerciseSet objects to the dict.
         if individual_exercise_sets:
             if len(individual_exercise_sets) > 6:
-                print("WARNING, LOTS OF SETS FOUND")
+                logger.info("WARNING, LOTS OF SETS FOUND")
             exercise = item[0]
             if exercise not in exercise_sets_dict.keys():
                 exercise_sets_dict[exercise] = individual_exercise_sets
@@ -199,13 +201,13 @@ def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets
         num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
 
         if num_reps > 100:
-            print(f"WARNING, suspiciously high number of reps {num_reps}.")
-            print("These sets won't be added.")
+            logger.warning(f"WARNING, suspiciously high number of reps {num_reps}.")
+            logger.warning("These sets won't be added.")
             break
 
         for i in range(num_sets):
             s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps, date=date_of_sets)
-            print(f"    {s}")
+            logger.info(f"    {s}")
             exercise_sets.append(s)
 
     return exercise_sets
@@ -237,17 +239,17 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
     # At this point, second_split should have 'setsxreps' 'weight' ... repeated
     # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
     if len(second_split) % 2 != 0:
-        print(f"SKIPPING, THIS SET STRING HAS INVALID SYNTAX.")
+        logger.warning(f"SKIPPING, THIS SET STRING HAS INVALID SYNTAX.")
         return []
 
     for i in range(0, len(second_split), 2):
         the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
         try:
             weight = float(second_split[i + 1])  # 65 70 ... 90
-            print(f"  {the_sets}@{weight}")
+            logger.info(f"  {the_sets}@{weight}")
             exercise_sets += _get_exercise_sets(exercise, weight, the_sets, date_of_sets)
         except ValueError:
-            print(f"SKIPPING MALFORMED LINE. Double check weight or syntax: {second_split[i]}@{second_split[i + 1]}")
+            logger.warning(f"SKIPPING MALFORMED LINE. Double check weight or syntax: {second_split[i]}@{second_split[i + 1]}")
             continue
     return exercise_sets
 
@@ -391,7 +393,9 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
     cur = con.cursor()
 
     daily_sets_list = []
-    print(f"IMPORTING {html_filepath}")
+
+    # TODO Add a handler to the logger so it logs to the status msg area.
+    logger.info(f"IMPORTING {html_filepath}")
 
     # Get hash and compressed content of HTML file.
     with open(html_filepath, 'r') as f:
@@ -422,22 +426,22 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
                         if year < 2000:  # Sometimes year is formatted with only two digits.
                             year += 2000
                         curr_date = date(year, month, day)
-                        print(f"\nCURR DATE: {curr_date}")
+                        logger.info(f"\nCURR DATE: {curr_date}")
                     except ValueError:
-                        print(
+                        logger.warning(
                             f"\nFAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'")
 
                 # Lines with exercises are structured like this: "exercise : sets"
                 elif line.__contains__(':'):
-                    print(line_num, line)
+                    logger.info(line_num, line)
                     exercise = _parse_exercise(line, alias_dict)
 
                     sets_str = _sanitize_sets(line[line.index(':'):])
                     if sets_str == "":
-                        print("SKIPPING, NO SETS TO LOG.")
+                        logger.warning("SKIPPING, NO SETS TO LOG.")
                     else:
                         daily_sets_item = (exercise, curr_date, sets_str)
-                        print(f'  daily_sets found: {daily_sets_item}')
+                        logger.info(f'  daily_sets found: {daily_sets_item}')
                         daily_sets_list.append(daily_sets_item)
 
     cur.execute("BEGIN TRANSACTION")
@@ -451,12 +455,12 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        print(f"\ntime to insert: {daily_sets_list}")
+        logger.info(f"\ntime to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        print(f"\ntime to insert: {daily_sets_list}")
+        logger.info(f"\ntime to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
 
     con.commit()

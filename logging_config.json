@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "standard": {
+      "format": "[%(asctime)s] %(levelname)-8s %(name)-12s %(funcName)-30s: %(message)s"
+    }
+  },
+  "handlers": {
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "standard",
+      "filename": "app.log",
+      "encoding": "utf8",
+      "maxBytes": 2500000
+    },
+    "console": {
+      "class" : "logging.StreamHandler",
+      "level": "WARNING",
+      "formatter": "standard",
+      "stream": "ext://sys.stderr"
+    }
+  },
+  "loggers": {
+    "": {
+      "handlers": ["file", "console"]
+    }
+  }
+}

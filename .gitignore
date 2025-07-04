@@ -8,3 +8,6 @@ __pycache__/*
 # (although we are storing the alias file, which is intended to be user-specific at some point)
 usr/*.html
 usr/*.db
+
+# log files
+app.log*

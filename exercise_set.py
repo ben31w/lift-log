@@ -1,3 +1,14 @@
+"""
+Python class representing a single exercise set.
+
+This is different from the SQLite daily_sets item, which represents all
+exercise sets performed on one day for a particular exercise.
+
+One daily_sets record can be converted to 1+ ExerciseSet objects.
+'2x10@135, 8,7@145' -> 10@135, 10@135, 8@145, 7@145
+
+This class is used to plots the sets.
+"""
 from datetime import date
 
 
