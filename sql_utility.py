@@ -11,6 +11,7 @@ from typing import Dict
 
 from common import hash_html, compress_html, decompress_html
 from exercise_set import ExerciseSet
+from text_widget_handler import TextWidgetHandler
 
 logger = logging.getLogger(__name__)
 
@@ -376,7 +377,7 @@ def _sanitize_sets(ln: str) -> str:
     return result.strip()
 
 
-def import_sets_via_html(html_filepath, existing_import_id=None):
+def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=None):
     """
     This function reads an HTML file and inserts data into SQLite.
 
@@ -385,6 +386,8 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
         the sets will have an import ID that matches the new import.
         If provided, an import record will not be generated, and the sets will
         be tied to the provided import ID.
+    :param text_widget: if provided, a handler will be added to the logger
+        so that messages get logged to the text widget.
     :return:
     """
     alias_dict = get_alias_dict()
@@ -394,7 +397,13 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
 
     daily_sets_list = []
 
-    # TODO Add a handler to the logger so it logs to the status msg area.
+    # TODO handler isn't working.
+    if text_widget is not None:
+        tw_handler = TextWidgetHandler(text_widget)
+        tw_handler.setLevel(logging.INFO)
+        logger.addHandler(tw_handler)
+        logger.info("This should appear in the text widget.")
+    print(logger.handlers)
     logger.info(f"IMPORTING {html_filepath}")
 
     # Get hash and compressed content of HTML file.
@@ -426,14 +435,14 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
                         if year < 2000:  # Sometimes year is formatted with only two digits.
                             year += 2000
                         curr_date = date(year, month, day)
-                        logger.info(f"\nCURR DATE: {curr_date}")
+                        logger.info(f"CURR DATE: {curr_date}")
                     except ValueError:
                         logger.warning(
-                            f"\nFAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'")
+                            f"FAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'")
 
                 # Lines with exercises are structured like this: "exercise : sets"
                 elif line.__contains__(':'):
-                    logger.info(line_num, line)
+                    logger.info(f"(line {line_num}) {line}")
                     exercise = _parse_exercise(line, alias_dict)
 
                     sets_str = _sanitize_sets(line[line.index(':'):])
@@ -455,13 +464,16 @@ def import_sets_via_html(html_filepath, existing_import_id=None):
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        logger.info(f"\ntime to insert: {daily_sets_list}")
+        logger.info(f"time to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        logger.info(f"\ntime to insert: {daily_sets_list}")
+        logger.info(f"time to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
+
+    if text_widget is not None:
+        logger.removeHandler(tw_handler)
 
     con.commit()
     cur.close()
@@ -518,17 +530,3 @@ def decompress_and_write_html(import_id: int) -> str:
         f.write(html_content)
     return file_to_write
 
-
-# Temporary Testing Area
-if __name__ == '__main__':
-    create_tables()
-    import_sets_via_html(f'html{os.path.sep}my_workouts.html')
-
-
-    print("---# OF SETS LOGGED FOR EACH EXERCISE---")
-    esd = get_exercise_sets_dict()
-
-    sorted_dict = {key: val for key, val in
-                   sorted(esd.items(), key=lambda ele: len(ele[1]), reverse=True)}
-    for k, v in sorted_dict.items():
-        print(f"{k}: {len(v)}")

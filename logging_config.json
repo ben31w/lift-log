@@ -13,7 +13,8 @@
       "formatter": "standard",
       "filename": "app.log",
       "encoding": "utf8",
-      "maxBytes": 2500000
+      "maxBytes": 2500000,
+      "backupCount": 3
     },
     "console": {
       "class" : "logging.StreamHandler",
@@ -22,9 +23,8 @@
       "stream": "ext://sys.stderr"
     }
   },
-  "loggers": {
-    "": {
-      "handlers": ["file", "console"]
-    }
+  "root": {
+    "level": "DEBUG",
+    "handlers": ["file", "console"]
   }
 }

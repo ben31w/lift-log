@@ -64,9 +64,9 @@ class TabImportSets(ttk.Frame):
         # Container row 3
         row3 = ttk.Frame(self)
         row3.grid(row=3, column=0, sticky=W)
-        status_msg_area = ScrolledText(row3, height=20, width=170)
-        status_msg_area.configure(state='disabled')  # user can't type here.
-        status_msg_area.grid(row=0, column=0)
+        self.status_msg_area = ScrolledText(row3, height=20, width=170)
+        self.status_msg_area.configure(state='disabled')  # user can't type here.
+        self.status_msg_area.grid(row=0, column=0)
 
         # Container row 4
         row4 = ttk.Frame(self)
@@ -294,7 +294,7 @@ class SubTabImportSetsViaHTML(ttk.Frame):
                 proceed = True
 
             if proceed:
-                import_sets_via_html(html_file)
+                import_sets_via_html(html_file, text_widget=self.tab_import_sets.status_msg_area)
                 self.tab_my_sets.update_exercises()
                 self.tab_import_sets.update_sheet()
 
