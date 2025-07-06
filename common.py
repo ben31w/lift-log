@@ -2,6 +2,7 @@
 Common utility functions for the project.
 """
 import hashlib
+from tkinter import END, Text
 from tkinter import ttk
 import zlib
 
@@ -43,3 +44,8 @@ def decompress_html(blob: bytes) -> str:
     :return: string
     """
     return zlib.decompress(blob).decode('utf-8')
+
+def print_to_text_widget(msg: str, text_widget: Text):
+    """Print msg to a text widget."""
+    if text_widget is not None:
+        text_widget.insert(END, msg + "\n")

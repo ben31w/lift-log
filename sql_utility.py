@@ -7,11 +7,11 @@ import os.path
 import sqlite3
 from datetime import date
 from datetime import datetime
+from tkinter import END
 from typing import Dict
 
-from common import hash_html, compress_html, decompress_html
+from common import hash_html, compress_html, decompress_html, print_to_text_widget
 from exercise_set import ExerciseSet
-from text_widget_handler import TextWidgetHandler
 
 logger = logging.getLogger(__name__)
 
@@ -397,14 +397,11 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
 
     daily_sets_list = []
 
-    # TODO handler isn't working.
     if text_widget is not None:
-        tw_handler = TextWidgetHandler(text_widget)
-        tw_handler.setLevel(logging.INFO)
-        logger.addHandler(tw_handler)
-        logger.info("This should appear in the text widget.")
-    print(logger.handlers)
-    logger.info(f"IMPORTING {html_filepath}")
+        text_widget.configure(state='normal')
+        text_widget.delete("1.0", END)
+
+    _log_import_msg(f"IMPORTING {html_filepath}", text_widget)
 
     # Get hash and compressed content of HTML file.
     with open(html_filepath, 'r') as f:
@@ -435,22 +432,24 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
                         if year < 2000:  # Sometimes year is formatted with only two digits.
                             year += 2000
                         curr_date = date(year, month, day)
-                        logger.info(f"CURR DATE: {curr_date}")
+                        _log_import_msg(f"CURR DATE: {curr_date}", text_widget)
                     except ValueError:
-                        logger.warning(
-                            f"FAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'")
+                        _log_import_msg(
+                            f"FAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'",
+                            text_widget,
+                            "WARNING")
 
                 # Lines with exercises are structured like this: "exercise : sets"
                 elif line.__contains__(':'):
-                    logger.info(f"(line {line_num}) {line}")
+                    _log_import_msg(f"(line {line_num}) {line}", text_widget)
                     exercise = _parse_exercise(line, alias_dict)
 
                     sets_str = _sanitize_sets(line[line.index(':'):])
                     if sets_str == "":
-                        logger.warning("SKIPPING, NO SETS TO LOG.")
+                        _log_import_msg("SKIPPING, NO SETS TO LOG.", text_widget, "WARNING")
                     else:
                         daily_sets_item = (exercise, curr_date, sets_str)
-                        logger.info(f'  daily_sets found: {daily_sets_item}')
+                        _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget)
                         daily_sets_list.append(daily_sets_item)
 
     cur.execute("BEGIN TRANSACTION")
@@ -464,16 +463,14 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        logger.info(f"time to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        logger.info(f"time to insert: {daily_sets_list}")
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
 
     if text_widget is not None:
-        logger.removeHandler(tw_handler)
+        text_widget.configure(state='disabled')
 
     con.commit()
     cur.close()
@@ -529,4 +526,27 @@ def decompress_and_write_html(import_id: int) -> str:
     with open(file_to_write, 'w') as f:
         f.write(html_content)
     return file_to_write
+
+
+def _log_import_msg(msg, text_widget, level="INFO"):
+    """
+    Logging helper method for import_sets_via_html.
+    Logs the given msg to the logger and the text_widget.
+    :param msg:
+    :param text_widget:
+    :param level:
+    :return:
+    """
+    match level:
+        case "DEBUG":
+            logger.debug(msg)
+        case "INFO":
+            logger.info(msg)
+        case "WARNING":
+            logger.warning(msg)
+        case "ERROR":
+            logger.error(msg)
+        case "CRITICAL":
+            logger.critical(msg)
+    print_to_text_widget(msg, text_widget)
 

@@ -19,7 +19,6 @@ class TextWidgetHandler(logging.Handler):
         self.text_widget.tag_config("CRITICAL", foreground="white", background="red")
 
     def emit(self, record):
-        print(self.formatter)
         msg = record.getMessage()
         level = record.levelname
 

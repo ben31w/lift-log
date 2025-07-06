@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import logging
 from tkinter import *
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 from typing import Dict
 
 import matplotlib
@@ -97,12 +98,9 @@ class TabMySets(ttk.Frame):
         # Container row 1
         self.row1 = ttk.Frame(self)
         self.row1.grid(row=1, column=0, sticky=W)
-        self.text_area = Text(self.row1, height=48, width=30)
+        self.text_area = ScrolledText(self.row1, height=48, width=30)
         self.text_area.configure(state='disabled')  # user can't type here
         self.text_area.grid(row=0, column=0, sticky=W)
-        scrollbar = ttk.Scrollbar(self.row1, command=self.text_area.yview)
-        scrollbar.grid(row=0, column=1, sticky=NSEW)
-        self.text_area['yscrollcommand'] = scrollbar.set
         self.plot_grid = ttk.Frame(self.row1)  # This frame is a 2x2 grid
         self.plot_grid.grid(row=0, column=2)
 

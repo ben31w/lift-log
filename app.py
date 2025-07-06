@@ -16,7 +16,7 @@ with open("logging_config.json", "r") as f:
     config = json.load(f)
 
 logging.config.dictConfig(config)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()  # root logger
 
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
