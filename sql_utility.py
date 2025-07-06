@@ -548,5 +548,5 @@ def _log_import_msg(msg, text_widget, level="INFO"):
             logger.error(msg)
         case "CRITICAL":
             logger.critical(msg)
-    print_to_text_widget(msg, text_widget)
+    print_to_text_widget(msg, text_widget, level)
 

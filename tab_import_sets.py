@@ -67,6 +67,12 @@ class TabImportSets(ttk.Frame):
         self.status_msg_area = ScrolledText(row3, height=20, width=170)
         self.status_msg_area.configure(state='disabled')  # user can't type here.
         self.status_msg_area.grid(row=0, column=0)
+        # Define tags for each log level
+        self.status_msg_area.tag_config("DEBUG", foreground="gray")
+        self.status_msg_area.tag_config("INFO", foreground="black")
+        self.status_msg_area.tag_config("WARNING", foreground="orange")
+        self.status_msg_area.tag_config("ERROR", foreground="red")
+        self.status_msg_area.tag_config("CRITICAL", foreground="white", background="red")
 
         # Container row 4
         row4 = ttk.Frame(self)
