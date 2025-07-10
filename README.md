@@ -3,6 +3,9 @@
 Lift Log is an app that enables you to visualize your exercise sets and 
 progress at the gym.
 
+![screenshot_my_sets](./images/screenshot_my_sets.png)
+![screenshot_import_sets](./images/screenshot_import_sets.png)
+
 ## How it works
 
 You add your exercise sets by importing them. Lift Log organizes 
