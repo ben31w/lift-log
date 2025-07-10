@@ -3,6 +3,7 @@ Convenience script that prints all the records in the database.
 """
 import sqlite3
 
+# My run configuration is currently set to the project root, not src directory.
 con = sqlite3.connect("usr/personal.db")
 cur = con.cursor()
 

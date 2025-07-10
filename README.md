@@ -19,11 +19,13 @@ an HTML file. Currently, there is a sample HTML file containing my exercise data
 
 The app isn't neatly packaged (yet). The ideal way to set up the app is:
 1. Clone the project.
-2. Create and activate virtual environment.
-3. `pip install requirements.txt`
+2. Create virtual environment. `python -m venv .venv`
+3. Activate virtual environment. `source .venv/bin/activate`
+4. Install dependencies. `pip install requirements.txt`
 
 Once set up, the ideal way to run the app is:
-4. `python app.py`
+1. Activate virtual environment. `source .venv/bin/activate`
+2. `python src/app.py`
 
 ## Inspiration
 
@@ -41,6 +43,6 @@ so far.
 - Allow user to import sets directly from Apple Notes
   - Start off assuming the app is run on macOS... 
   - Maybe it's possible to containerize the app in macOS.
-- Package the app
+- Package the app + dependencies
 - Reduce logging/fix up levels
 - Image processing (advanced)
