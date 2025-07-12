@@ -3,6 +3,7 @@
 
 # Python files we don't care about
 __pycache__/*
+.venv/
 
 # User-specific files aren't stored in Git.
 # (although we are storing the alias file, which is intended to be user-specific at some point)

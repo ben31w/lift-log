@@ -20,11 +20,13 @@ an HTML file. Currently, there is a sample HTML file containing my exercise data
 
 ## Setup + Running
 
+Prerequisite: Python 3.10+
+
 The app isn't neatly packaged (yet). The ideal way to set up the app is:
 1. Clone the project.
 2. Create virtual environment. `python -m venv .venv`
 3. Activate virtual environment. `source .venv/bin/activate`
-4. Install dependencies. `pip install requirements.txt`
+4. Install dependencies. `pip install -r requirements.txt`
 
 Once set up, the ideal way to run the app is:
 1. Activate virtual environment. `source .venv/bin/activate`
@@ -47,5 +49,6 @@ so far.
   - Start off assuming the app is run on macOS... 
   - Maybe it's possible to containerize the app in macOS.
 - Package the app + dependencies
+- Containerize this app, so the user doesn't need a specific version of Python
 - Reduce logging/fix up levels
 - Image processing (advanced)
