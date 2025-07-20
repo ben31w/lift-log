@@ -45,6 +45,8 @@ combines my passions for fitness and programming, and I've enjoyed it a lot
 so far. 
 
 ## TODOs
+- Make the display responsive/nice across all screen resolutions.
+  It looks nice on my machine... but not others, depending on resolution.
 - Allow user to import sets directly from Apple Notes
   - Start off assuming the app is run on macOS... 
   - Maybe it's possible to containerize the app in macOS.

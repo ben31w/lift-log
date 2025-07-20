@@ -57,8 +57,7 @@ class LiftLog(Tk):
 
         # Using the screen width and height, set a 'Matplotlib scale'.
         # If the screen isn't 1920x1080, we can use the scale to adjust the
-        # MPL plots so they display nicely.
-        # TODO use mpl_scale
+        # size + fonts of the MPL plots so they display nicely.
         self.mpl_scale = min(screen_width_px / 1920, screen_height_px / 1080)
 
         # The starting window size shall be defined as 60% of the screen resolution.
