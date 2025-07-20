@@ -10,6 +10,7 @@ packaging==25.0
 pillow==11.3.0
 pyparsing==3.2.3
 python-dateutil==2.9.0.post0
+screeninfo==0.8.1
 six==1.17.0
 tkcalendar==1.6.1
 tksheet==7.5.12

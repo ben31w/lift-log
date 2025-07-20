@@ -70,42 +70,58 @@ class TabMySets(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
-        # Container row 0
-        row0 = ttk.Frame(self)
-        row0.grid(row=0, column=0, sticky=W)
-        lbl_exercise = ttk.Label(row0, text="Exercise")
-        lbl_exercise.grid(row=0, column=0)
-        self.combobox = ttk.Combobox(row0, width=40)
-        self.combobox.grid(row=0, column=1)
-        self.esd= {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
+        # Most of our widgets are gridded directly onto this frame.
+        # Here, we configure padding for this frame, which determines the spacing
+        # between all widgets that are direct children of this frame.
+        self.configure(padding=(3,3,12,12))
 
-        self.lbl_start_date = ttk.Label(row0, text="Start Date")
-        self.lbl_start_date.grid(row=0, column=2)
-        self.date_entry_start = DateEntry(row0, width=12, background='darkblue',
-                                          foreground='white', borderwidth=2)
-        self.date_entry_start.grid(row=0, column=3)
+        # --- Define widgets ---
+        self.lbl_exercise = ttk.Label(self, text="Exercise")
+        self.combobox = ttk.Combobox(self, width=20)
+
+        # The date entries + labels exist in their own frame that doesn't resize.
+        self.frm_dates = ttk.Frame(self, padding=(3,3,12,12))
+        self.lbl_start_date = ttk.Label(self.frm_dates, text="Start Date")
+        self.date_entry_start = DateEntry(self.frm_dates, width=12, background='darkblue',foreground='white', borderwidth=2)
         self.date_entry_start.bind("<<DateEntrySelected>>", self.show_plots)
-
-        self.lbl_end_date = ttk.Label(row0, text="End Date")
-        self.lbl_end_date.grid(row=0, column=4)
-        self.date_entry_end = DateEntry(row0, width=12, background='darkblue',
-                                        foreground='white', borderwidth=2)
-        self.date_entry_end.grid(row=0, column=5)
+        self.lbl_end_date = ttk.Label(self.frm_dates, text="End Date")
+        self.date_entry_end = DateEntry(self.frm_dates, width=12, background='darkblue', foreground='white', borderwidth=2)
         self.date_entry_end.bind("<<DateEntrySelected>>", self.show_plots)
 
+        self.text_area = ScrolledText(self, height=1, width=30)
+        self.text_area.configure(state='disabled')  # user can't type here
+
+
+        # --- Define data structures ---
+        self.esd= {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
         self.update_exercises()
 
-        # Container row 1
-        self.row1 = ttk.Frame(self)
-        self.row1.grid(row=1, column=0, sticky=W)
-        self.text_area = ScrolledText(self.row1, height=48, width=30)
-        self.text_area.configure(state='disabled')  # user can't type here
-        self.text_area.grid(row=0, column=0, sticky=W)
-        self.plot_grid = ttk.Frame(self.row1)  # This frame is a 2x2 grid
-        self.plot_grid.grid(row=0, column=2)
+        # --- Manage layout of widgets ---
+        self.lbl_exercise.grid(row=0, column=0)
+        self.combobox.grid(row=0, column=1)
+        self.frm_dates.grid(row=0, column=2, sticky='W')  # prevent stretching
 
-        pad_frame(self)
-        pad_frame(self.row1)
+        # These are gridded onto the date frame, not the overall frame
+        self.lbl_start_date.grid(row=0, column=0)
+        self.date_entry_start.grid(row=0, column=1)
+        self.lbl_end_date.grid(row=0, column=2)
+        self.date_entry_end.grid(row=0, column=3)
+
+        self.text_area.grid(row=1, column=0, rowspan=2, columnspan=2, sticky='NS')
+
+
+        # Configure the responsive layout for each row and column.
+        # Don't resize columns 0-1 as the window resizes.
+        # Don't resize row 0 as the window resizes.
+        # Everything else, resize equally.
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=0)
+        self.columnconfigure(2, weight=1)
+        self.columnconfigure(3, weight=1)
+        self.rowconfigure(0, weight=0)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
+
 
     def update_exercises(self):
         """
@@ -219,14 +235,13 @@ class TabMySets(ttk.Frame):
 
         # Show plots
         self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=start_date, end_date=end_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=2)
         self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=start_date, end_date=end_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=3)
         self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=start_date, end_date=end_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=2, plot_grid_col=2)
         self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=start_date, end_date=end_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
-        pad_frame(self.row1)
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=2, plot_grid_col=3)
 
     def show_plot(self, list_sets : list[ExerciseSet], min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
         """
@@ -241,7 +256,7 @@ class TabMySets(ttk.Frame):
         :param plot_grid_col: column to place this plot within the plot grid
         :return:
         """
-        fig = Figure()
+        fig = Figure(figsize=(4, 3))
         ax = fig.add_subplot(111)
         fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps")
 
@@ -269,11 +284,16 @@ class TabMySets(ttk.Frame):
         # Rotates and right-aligns the x labels so they don't crowd each other.
         for label in ax.get_xticklabels(which='major'):
             label.set(rotation=30, horizontalalignment='right')
+            # label.set_fontsize(4.0*1.5625)
+        for label in ax.get_xticklabels(which='major'):
+            logger.info(f"Tick label font size: {label.get_fontsize()}")
+            break
+        fig.subplots_adjust()
 
         # Create scatter, and attach it to the canvas
         scatter = ax.scatter(x, y, c=colors, cmap=cmap, marker='o')
         mplcursors.cursor(scatter)
         fig.colorbar(scatter, format="%d", ticks=list(range(min_reps, max_reps+1)))
-        canvas = FigureCanvasTkAgg(fig, self.plot_grid)
+        canvas = FigureCanvasTkAgg(fig, self)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
+        canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col, sticky='NSEW')
