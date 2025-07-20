@@ -66,12 +66,19 @@ class TabMySets(ttk.Frame):
     The user selects an exercise, and their sets are displayed in text and
     graphical view.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, mpl_scale):
+        """
+        Constructor for My Sets tab.
+        :param parent: a reference to the notebook that stores this tab.
+               Required by Tkinter.
+        :param mpl_scale: MatPlotLib scale: when the MPL plots are created, they
+               will be sized according to this scale. 1 is ideal scale for 1080p.
+        """
         super().__init__(parent)
 
         # Here, we configure padding for this frame, which determines the spacing
         # between all widgets that are direct children of this frame.
-        self.configure(padding=(3,3,12,12))
+        self.configure(padding=(3,3,3,3))
 
         # --- Define widgets ---
         # There are two frames placed on the root.
@@ -105,10 +112,6 @@ class TabMySets(ttk.Frame):
         self.text_area = ScrolledText(self.frm_display, width=30)
         self.text_area.configure(state='disabled')  # user can't type here
 
-        # --- Define data structures ---
-        self.esd = {}  # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
-        self.update_exercises()
-
         # --- Manage layout of widgets ---
         self.frm_controls.grid(row=0, column=0, sticky='NSEW')
         self.lbl_exercise.grid(row=0, column=0)
@@ -130,6 +133,20 @@ class TabMySets(ttk.Frame):
         self.frm_display.columnconfigure(2, weight=1)
         self.frm_display.rowconfigure(0, weight=1)
         self.frm_display.rowconfigure(1, weight=1)
+
+        # --- Define data structures and fields ---
+        self.esd = {}  # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
+        self.update_exercises()
+
+        # Base MatPlotLib dimensions (ideal for 1080p res)
+        base_figsize = (6.4, 4.8)
+        base_title_size = 16
+        base_tick_size = 9.6
+
+        # Scale everything
+        self.figsize = (base_figsize[0] * mpl_scale, base_figsize[1] * mpl_scale)
+        self.title_size = base_title_size * mpl_scale
+        self.tick_size = base_tick_size * mpl_scale
 
 
     def update_exercises(self):
@@ -268,9 +285,9 @@ class TabMySets(ttk.Frame):
         :param plot_grid_col: column to place this plot within frm_display
         :return:
         """
-        fig = Figure(figsize=(4, 3))
+        fig = Figure(self.figsize)
         ax = fig.add_subplot(111)
-        fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps")
+        fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps", fontsize=self.title_size)
 
         if len(list_sets) == 0:
             # Currently displays empty graph with weird axis ticks, probably not the behavior we want
@@ -296,10 +313,9 @@ class TabMySets(ttk.Frame):
         # Rotates and right-aligns the x labels so they don't crowd each other.
         for label in ax.get_xticklabels(which='major'):
             label.set(rotation=30, horizontalalignment='right')
-            # label.set_fontsize(4.0*1.5625)
-        for label in ax.get_xticklabels(which='major'):
-            logger.info(f"Tick label font size: {label.get_fontsize()}")
-            break
+            label.set_fontsize(self.tick_size)
+        for label in ax.get_yticklabels(which='major'):
+            label.set_fontsize(self.tick_size)
         fig.subplots_adjust()
 
         # Create scatter, and attach it to the canvas

@@ -60,15 +60,15 @@ class LiftLog(Tk):
         # size + fonts of the MPL plots so they display nicely.
         self.mpl_scale = min(screen_width_px / 1920, screen_height_px / 1080)
 
-        # The starting window size shall be defined as 60% of the screen resolution.
-        self.geometry(f"{int(screen_width_px * 0.6)}x{int(screen_height_px * 0.6)}")
+        # The starting window size shall be defined as 80% of the screen resolution.
+        self.geometry(f"{int(screen_width_px * 0.8)}x{int(screen_height_px * 0.8)}")
 
         # Initialize SQLite data first.
         create_tables()
 
         # Init main notebook and tabs. Each notebook tab is a frame.
         main_notebook = ttk.Notebook(self)
-        tab_my_sets = TabMySets(main_notebook)
+        tab_my_sets = TabMySets(main_notebook, self.mpl_scale)
         tab_import_sets = TabImportSets(main_notebook, tab_my_sets)
 
         # Define layout. For the frames to stretch:
