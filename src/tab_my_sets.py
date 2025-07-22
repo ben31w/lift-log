@@ -16,7 +16,6 @@ from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
-from common import pad_frame
 from exercise_set import ExerciseSet
 from sql_utility import get_exercise_sets_dict
 
@@ -67,45 +66,88 @@ class TabMySets(ttk.Frame):
     The user selects an exercise, and their sets are displayed in text and
     graphical view.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, mpl_scale):
+        """
+        Constructor for My Sets tab.
+        :param parent: a reference to the notebook that stores this tab.
+               Required by Tkinter.
+        :param mpl_scale: MatPlotLib scale: when the MPL plots are created, they
+               will be sized according to this scale. 1 is ideal scale for 1080p.
+        """
         super().__init__(parent)
 
-        # Container row 0
-        row0 = ttk.Frame(self)
-        row0.grid(row=0, column=0, sticky=W)
-        lbl_exercise = ttk.Label(row0, text="Exercise")
-        lbl_exercise.grid(row=0, column=0)
-        self.combobox = ttk.Combobox(row0, width=40)
-        self.combobox.grid(row=0, column=1)
-        self.esd= {} # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
+        # Here, we configure padding for this frame, which determines the spacing
+        # between all widgets that are direct children of this frame.
+        self.configure(padding=(3,3,3,3))
 
-        self.lbl_start_date = ttk.Label(row0, text="Start Date")
-        self.lbl_start_date.grid(row=0, column=2)
-        self.date_entry_start = DateEntry(row0, width=12, background='darkblue',
-                                          foreground='white', borderwidth=2)
-        self.date_entry_start.grid(row=0, column=3)
+        # --- Define widgets ---
+        # There are two frames placed on the root.
+        # The Controls Frame will not resize as the window resizes?
+        # The Display Frame will resize.
+        #
+        # self
+        # |__frm_controls
+        # |  |__ exercise + data selectors
+        # |__frm_display
+        #    |__ exercise sets + plot display
+        self.frm_controls = ttk.Frame(self, padding=(3, 3, 12, 12))
+        self.lbl_exercise = ttk.Label(self.frm_controls, text="Exercise")
+        self.combobox = ttk.Combobox(self.frm_controls, width=20)
+        self.lbl_start_date = ttk.Label(self.frm_controls, text="Start Date")
+        self.date_entry_start = DateEntry(self.frm_controls,
+                                          width=12,
+                                          background='darkblue',
+                                          foreground='white',
+                                          borderwidth=2)
         self.date_entry_start.bind("<<DateEntrySelected>>", self.show_plots)
-
-        self.lbl_end_date = ttk.Label(row0, text="End Date")
-        self.lbl_end_date.grid(row=0, column=4)
-        self.date_entry_end = DateEntry(row0, width=12, background='darkblue',
-                                        foreground='white', borderwidth=2)
-        self.date_entry_end.grid(row=0, column=5)
+        self.lbl_end_date = ttk.Label(self.frm_controls, text="End Date")
+        self.date_entry_end = DateEntry(self.frm_controls,
+                                        width=12,
+                                        background='darkblue',
+                                        foreground='white',
+                                        borderwidth=2)
         self.date_entry_end.bind("<<DateEntrySelected>>", self.show_plots)
 
+        self.frm_display = ttk.Frame(self, padding=(3, 3, 3, 3))
+        self.text_area = ScrolledText(self.frm_display, width=30)
+        self.text_area.configure(state='disabled')  # user can't type here
+
+        # --- Manage layout of widgets ---
+        self.frm_controls.grid(row=0, column=0, sticky='NSEW')
+        self.lbl_exercise.grid(row=0, column=0)
+        self.combobox.grid(row=0, column=1)
+        self.lbl_start_date.grid(row=0, column=2)
+        self.date_entry_start.grid(row=0, column=3)
+        self.lbl_end_date.grid(row=0, column=4)
+        self.date_entry_end.grid(row=0, column=5)
+
+        self.frm_display.grid(row=1, column=0, sticky='NSEW')
+        self.text_area.grid(row=0, column=0, rowspan=2, sticky='NSW')
+
+        # Configure the responsive layout for each row and column.
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=0)
+        self.rowconfigure(1, weight=1)
+        self.frm_display.columnconfigure(0, weight=0)
+        self.frm_display.columnconfigure(1, weight=1)
+        self.frm_display.columnconfigure(2, weight=1)
+        self.frm_display.rowconfigure(0, weight=1)
+        self.frm_display.rowconfigure(1, weight=1)
+
+        # --- Define data structures and fields ---
+        self.esd = {}  # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
         self.update_exercises()
 
-        # Container row 1
-        self.row1 = ttk.Frame(self)
-        self.row1.grid(row=1, column=0, sticky=W)
-        self.text_area = ScrolledText(self.row1, height=48, width=30)
-        self.text_area.configure(state='disabled')  # user can't type here
-        self.text_area.grid(row=0, column=0, sticky=W)
-        self.plot_grid = ttk.Frame(self.row1)  # This frame is a 2x2 grid
-        self.plot_grid.grid(row=0, column=2)
+        # Base MatPlotLib dimensions (ideal for 1080p res)
+        base_figsize = (6.4, 4.8)
+        base_title_size = 16
+        base_tick_size = 9.6
 
-        pad_frame(self)
-        pad_frame(self.row1)
+        # Scale everything
+        self.figsize = (base_figsize[0] * mpl_scale, base_figsize[1] * mpl_scale)
+        self.title_size = base_title_size * mpl_scale
+        self.tick_size = base_tick_size * mpl_scale
+
 
     def update_exercises(self):
         """
@@ -135,8 +177,11 @@ class TabMySets(ttk.Frame):
             self.text_area.delete("1.0", END)
             self.text_area.configure(state="disabled")
             self.combobox.selection_clear()
-            for widget in self.plot_grid.winfo_children():
-                widget.destroy()
+            for widget in self.frm_display.winfo_children():
+                # Since the exercise doesn't exist anymore, destroy the canvases
+                # for this exercise.
+                if isinstance(widget, Canvas):
+                    widget.destroy()
             return
 
         self.update_text_area()
@@ -219,14 +264,13 @@ class TabMySets(ttk.Frame):
 
         # Show plots
         self.show_plot(list_sets=sets_1_5, min_reps=1, max_reps=5, start_date=start_date, end_date=end_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=0)
-        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=start_date, end_date=end_date,
                        cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=1)
+        self.show_plot(list_sets=sets_6_8, min_reps=6, max_reps=8, start_date=start_date, end_date=end_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=0, plot_grid_col=2)
         self.show_plot(list_sets=sets_9_11, min_reps=9, max_reps=11, start_date=start_date, end_date=end_date,
-                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=0)
-        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=start_date, end_date=end_date,
                        cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=1)
-        pad_frame(self.row1)
+        self.show_plot(list_sets=sets_12_up, min_reps=12, max_reps=20, start_date=start_date, end_date=end_date,
+                       cmap=matplotlib.colormaps['viridis'], plot_grid_row=1, plot_grid_col=2)
 
     def show_plot(self, list_sets : list[ExerciseSet], min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, plot_grid_row : int, plot_grid_col : int):
         """
@@ -237,13 +281,13 @@ class TabMySets(ttk.Frame):
         :param start_date:    the start date for this plot
         :param end_date:      the end date for this plot
         :param cmap:          colormap to use
-        :param plot_grid_row: row to place this plot within the plot grid
-        :param plot_grid_col: column to place this plot within the plot grid
+        :param plot_grid_row: row to place this plot within frm_display
+        :param plot_grid_col: column to place this plot within frm_display
         :return:
         """
-        fig = Figure()
+        fig = Figure(self.figsize)
         ax = fig.add_subplot(111)
-        fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps")
+        fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps", fontsize=self.title_size)
 
         if len(list_sets) == 0:
             # Currently displays empty graph with weird axis ticks, probably not the behavior we want
@@ -268,12 +312,16 @@ class TabMySets(ttk.Frame):
 
         # Rotates and right-aligns the x labels so they don't crowd each other.
         for label in ax.get_xticklabels(which='major'):
-            label.set(rotation=30, horizontalalignment='right')
+            label.set(rotation=20, horizontalalignment='right')
+            label.set_fontsize(self.tick_size)
+        for label in ax.get_yticklabels(which='major'):
+            label.set_fontsize(self.tick_size)
+        fig.subplots_adjust()
 
         # Create scatter, and attach it to the canvas
         scatter = ax.scatter(x, y, c=colors, cmap=cmap, marker='o')
         mplcursors.cursor(scatter)
         fig.colorbar(scatter, format="%d", ticks=list(range(min_reps, max_reps+1)))
-        canvas = FigureCanvasTkAgg(fig, self.plot_grid)
+        canvas = FigureCanvasTkAgg(fig, self.frm_display)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col)
+        canvas.get_tk_widget().grid(row=plot_grid_row, column=plot_grid_col, sticky='NSEW')
