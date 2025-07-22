@@ -312,7 +312,7 @@ class TabMySets(ttk.Frame):
 
         # Rotates and right-aligns the x labels so they don't crowd each other.
         for label in ax.get_xticklabels(which='major'):
-            label.set(rotation=30, horizontalalignment='right')
+            label.set(rotation=20, horizontalalignment='right')
             label.set_fontsize(self.tick_size)
         for label in ax.get_yticklabels(which='major'):
             label.set_fontsize(self.tick_size)

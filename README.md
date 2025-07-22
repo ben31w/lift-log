@@ -45,8 +45,15 @@ combines my passions for fitness and programming, and I've enjoyed it a lot
 so far. 
 
 ## TODOs
-- Make the display responsive/nice across all screen resolutions.
-  It looks nice on my machine... but not others, depending on resolution.
+- Make the display more responsive/nice across all screen resolutions.
+  - It currently looks pretty nice on my 1080p machine
+  - On my 1280x720 VM, it looks decent when the app is full screen
+  - On any machine, the plots don't look as nice when the window resizes...
+    as the window resizes, the plot canvases resize but the fonts don't.
+  - The Import Sets tab isn't responsive at all
+- Other display fixes
+  - The import status msg area looks pretty bad on some dark themes. The excessive
+    logging doesn't help.
 - Allow user to import sets directly from Apple Notes
   - Start off assuming the app is run on macOS... 
   - Maybe it's possible to containerize the app in macOS.

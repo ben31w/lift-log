@@ -60,8 +60,9 @@ class LiftLog(Tk):
         # size + fonts of the MPL plots so they display nicely.
         self.mpl_scale = min(screen_width_px / 1920, screen_height_px / 1080)
 
-        # The starting window size shall be defined as 80% of the screen resolution.
-        self.geometry(f"{int(screen_width_px * 0.8)}x{int(screen_height_px * 0.8)}")
+        # The app looks consistently best at full screen, so make that the
+        # default dimensions
+        self.geometry(f"{int(screen_width_px)}x{int(screen_height_px)}")
 
         # Initialize SQLite data first.
         create_tables()
