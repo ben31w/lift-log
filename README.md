@@ -44,22 +44,21 @@ sure how useful of a fitness tool this will end up being. But the project
 combines my passions for fitness and programming, and I've enjoyed it a lot
 so far. 
 
-## TODOs
+## TODOs (with PRIORITY)
 - Display fixes
-  - On smaller resolutions, the app looks decent in full screen, but not 
-  - The plots don't look great when the window resizes. This is especially
-    true on machines with smaller resolutions. The plot canvases resize, but 
-    the font on the plots don't.
-  - Import Sets tab fixes
+  - (HIGH) Import Sets tab fixes
     - macOS: mouse scroll doesn't work
     - Ubuntu: mouse scroll works when there shouldn't be room to scroll.
     - The import status msg area looks pretty bad on some dark themes.
       (black text on dark text area)
-- Allow user to import sets directly from Apple Notes
+  - (LOW) The plots don't look great when the window resizes. This is especially
+    true on machines with smaller resolutions. The plot canvases resize, but 
+    the font on the plots don't.
+- (HIGH) Allow user to import sets directly from Apple Notes
   - Start off assuming the app is run on macOS... 
   - Maybe it's possible to containerize the app in macOS.
-- Package the app + dependencies
-- Containerize this app, so the user doesn't need a specific version of Python
+- (HIGH) Package the app + dependencies
+- (MEDIUM) Reduce logging
+- (LOW) Containerize this app, so the user doesn't need a specific version of Python
   - Containerizing a tkinter app might be hard
-- Reduce logging/fix up levels
-- Image processing (advanced)
+- (LOW) Image processing (advanced)
