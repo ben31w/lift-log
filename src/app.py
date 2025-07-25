@@ -70,7 +70,7 @@ class LiftLog(Tk):
         # Init main notebook and tabs. Each notebook tab is a frame.
         main_notebook = ttk.Notebook(self)
         tab_my_sets = TabMySets(main_notebook, self.mpl_scale)
-        tab_import_sets = TabImportSets(main_notebook, tab_my_sets)
+        tab_import_sets = TabImportSets(main_notebook, tab_my_sets, screen_height_px)
 
         # Define layout. For the frames to stretch:
         # - specify sticky when gridding AND
