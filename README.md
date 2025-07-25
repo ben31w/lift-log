@@ -45,19 +45,21 @@ combines my passions for fitness and programming, and I've enjoyed it a lot
 so far. 
 
 ## TODOs
-- Make the display more responsive/nice across all screen resolutions.
-  - It currently looks pretty nice on my 1080p machine
-  - On my 1280x720 VM, it looks decent when the app is full screen
-  - On any machine, the plots don't look as nice when the window resizes...
-    as the window resizes, the plot canvases resize but the fonts don't.
-  - The Import Sets tab isn't responsive at all
-- Other display fixes
-  - The import status msg area looks pretty bad on some dark themes. The excessive
-    logging doesn't help.
+- Display fixes
+  - On smaller resolutions, the app looks decent in full screen, but not 
+  - The plots don't look great when the window resizes. This is especially
+    true on machines with smaller resolutions. The plot canvases resize, but 
+    the font on the plots don't.
+  - Import Sets tab fixes
+    - macOS: mouse scroll doesn't work
+    - Ubuntu: mouse scroll works when there shouldn't be room to scroll.
+    - The import status msg area looks pretty bad on some dark themes.
+      (black text on dark text area)
 - Allow user to import sets directly from Apple Notes
   - Start off assuming the app is run on macOS... 
   - Maybe it's possible to containerize the app in macOS.
 - Package the app + dependencies
 - Containerize this app, so the user doesn't need a specific version of Python
+  - Containerizing a tkinter app might be hard
 - Reduce logging/fix up levels
 - Image processing (advanced)
