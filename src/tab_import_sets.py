@@ -15,6 +15,7 @@ from tksheet import Sheet
 from common import hash_html, pad_frame
 from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
     get_imports, import_sets_via_html
+from vertical_scrolled_frame import VerticalScrolledFrame
 from tab_my_sets import TabMySets
 from window_alias_editor import WindowAliasEditor
 
@@ -33,67 +34,53 @@ class TabImportSets(ttk.Frame):
     - Picture of journal (very ambitious TODO).
 
     There is an import status window and a way to remove previous imports.
-    TODO implement status window.
     """
 
-    def __init__(self, parent, tab_my_sets: TabMySets):
-        ttk.Frame.__init__(self, parent)
+    def __init__(self, parent, tab_my_sets : TabMySets, starting_height : int = 1080):
+        """
+        Constructor for Import Sets tab.
+        :param parent: a reference to the notebook that stores this tab.
+               Required by Tkinter.
+        :param tab_my_sets: a reference to the My Sets Tab is needed because
+               we update elements on that tab as imports are managed.
+        :param starting_height: starting height of this frame, passed to the
+               VerticalScrolledFrame that this frame contains.
+        """
+        super().__init__(parent)
+
+        # -- Important Attributes ---
         self.tab_my_sets = tab_my_sets
+        self.alias_editor_is_open = False
 
-        # Container row 0
-        row0 = ttk.Frame(self)
-        row0.grid(row=0, column=0, sticky=W)
-        lbl_import_methods = ttk.Label(row0, text="Import Methods")
-        lbl_import_methods.grid(row=0, column=0)
+        # This frame contains a vertical scrolled frame, which contains an
+        # interior frame where we must add content.
+        main_frame = VerticalScrolledFrame(self, starting_height=starting_height)
+        self.content_frame = main_frame.interior
 
-        # Container row 1
-        row1 = ttk.Frame(self)
-        row1.grid(row=1, column=0, sticky=W)
-        import_method_notebook = ttk.Notebook(row1)
-        import_method_notebook.grid(row=0, column=0)
+        # --- Define widgets ---
+        lbl_import_methods = ttk.Label(self.content_frame, text="Import Methods")
+        import_method_notebook = ttk.Notebook(self.content_frame)
         tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self, tab_my_sets)
-        tab_import_via_html.pack(fill='both', expand=True)
-        import_method_notebook.add(tab_import_via_html, text="HTML")
 
-        # Container row 2
-        row2 = ttk.Frame(self)
-        row2.grid(row=2, column=0, sticky=W)
-        lbl_import_status = ttk.Label(row2, text="Import Status")
-        lbl_import_status.grid(row=0, column=0)
-
-        # Container row 3
-        row3 = ttk.Frame(self)
-        row3.grid(row=3, column=0, sticky=W)
-        self.status_msg_area = ScrolledText(row3, height=20, width=170)
-        self.status_msg_area.configure(state='disabled')  # user can't type here.
-        self.status_msg_area.grid(row=0, column=0)
-        # Define tags for each log level
+        # Import Status msg area:
+        # Configure it so user can't type here and different log levels are colored.
+        lbl_import_status = ttk.Label(self.content_frame, text="Import Status")
+        self.status_msg_area = ScrolledText(self.content_frame, height=20, width=170)
+        self.status_msg_area.configure(state='disabled')
         self.status_msg_area.tag_config("DEBUG", foreground="gray")
         self.status_msg_area.tag_config("INFO", foreground="black")
         self.status_msg_area.tag_config("WARNING", foreground="orange")
         self.status_msg_area.tag_config("ERROR", foreground="red")
         self.status_msg_area.tag_config("CRITICAL", foreground="white", background="red")
 
-        # Container row 4
-        row4 = ttk.Frame(self)
-        row4.grid(row=4, column=0, sticky=W)
-        lbl_manage_imports_title = ttk.Label(row4, text="Manage Imports")
-        lbl_manage_imports_title.grid(row=0, column=0)
-
-        # Container row 5
-        row5 = ttk.Frame(self)
-        row5.grid(row=5, column=0, sticky=W)
-        lbl_manage_imports_desc = ttk.Label(row5,
+        lbl_manage_imports_title = ttk.Label(self.content_frame, text="Manage Imports")
+        lbl_manage_imports_desc = ttk.Label(self.content_frame,
                                             text="You can view and delete your imports here.")
-        lbl_manage_imports_desc.grid(row=0, column=0)
 
-        # Container row 6
         # The sheet displays the method, date time, file, and delete button for each of the user's imports.
         # Each cell in the delete column has a note attached. The note is the SQLite rowid of the import.
         # Most of the columns only contain data, but the delete column contains notes.
-        row6 = ttk.Frame(self)
-        row6.grid(row=6, column=0, sticky=W)
-        self.sheet = Sheet(row6,
+        self.sheet = Sheet(self.content_frame,
                            theme="light green",
                            height=200,
                            width=600,
@@ -115,30 +102,51 @@ class TabImportSets(ttk.Frame):
         )
         self.sheet.extra_bindings("cell_select", self.on_cell_select)
         self.update_sheet()
-        self.sheet.grid(row=0, column=0)
 
-        pad_frame(self)
-        # pad_frame(row1)
-
-        # Container row 7
-        row7 = ttk.Frame(self)
-        row7.grid(row=7, column=0, sticky=W)
-        lbl_manage_exercise_aliases_title = ttk.Label(row7, text="Manage Exercise Aliases")
-        lbl_manage_exercise_aliases_title.grid(row=0, column=0)
-
-        # Container row 8
-        row8 = ttk.Frame(self)
-        row8.grid(row=8, column=0, sticky=W)
-        lbl_manage_exercise_aliases_desc = ttk.Label(row8,
+        lbl_manage_exercise_aliases_title = ttk.Label(self.content_frame, text="Manage Exercise Aliases")
+        lbl_manage_exercise_aliases_desc = ttk.Label(self.content_frame,
                                                      text="You can manage your exercise aliases here.")
-        lbl_manage_exercise_aliases_desc.grid(row=0, column=0)
+        btn_manage_exercise_aliases = ttk.Button(self.content_frame,
+                                                 text="Manage",
+                                                 command=lambda: self.open_alias_editor())
 
-        # Container row 9
-        row9 = ttk.Frame(self)
-        row9.grid(row=9, column=0, sticky=W)
-        self.alias_editor_is_open = False
-        btn_manage_exercise_aliases = ttk.Button(row9, text="Manage", command=lambda: self.open_alias_editor())
-        btn_manage_exercise_aliases.grid(row=0, column=0)
+
+
+        # --- Grid widgets and configure rows to resize. ---
+        # sticky='NSEW' gets a widget to stretch in all directions when the
+        # window resizes.
+        main_frame.grid(row=0, column=0, sticky='NSEW')
+        lbl_import_methods.grid(row=0, column=0, sticky='NSEW')
+        import_method_notebook.grid(row=1, column=0, sticky='NSEW')
+        lbl_import_status.grid(row=2, column=0, sticky='NSEW')
+        self.status_msg_area.grid(row=3, column=0, sticky='NSEW')
+        lbl_manage_imports_title.grid(row=4, column=0, sticky='NSEW')
+        lbl_manage_imports_desc.grid(row=5, column=0, sticky='NSEW')
+        self.sheet.grid(row=6, column=0, sticky='NSEW')
+        lbl_manage_exercise_aliases_title.grid(row=7, column=0, sticky='NSEW')
+        lbl_manage_exercise_aliases_desc.grid(row=8, column=0, sticky='NSEW')
+        btn_manage_exercise_aliases.grid(row=9, column=0)
+
+        # To get content to resize, we need to row/columnconfigure the content
+        # frame, this class (done here), as well as the root Tk window (done
+        # in LiftLog)
+        self.content_frame.rowconfigure(0, weight=1)
+        self.content_frame.rowconfigure(1, weight=1)
+        self.content_frame.rowconfigure(2, weight=1)
+        self.content_frame.rowconfigure(3, weight=1)
+        self.content_frame.rowconfigure(4, weight=1)
+        self.content_frame.rowconfigure(5, weight=1)
+        self.content_frame.rowconfigure(6, weight=1)
+        self.content_frame.rowconfigure(7, weight=1)
+        self.content_frame.rowconfigure(8, weight=1)
+        self.content_frame.rowconfigure(9, weight=1)
+        self.content_frame.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        # Import Method Notebook tabs
+        tab_import_via_html.grid(row=0, column=0, sticky='NSEW')
+        import_method_notebook.add(tab_import_via_html, text="HTML")
 
     def on_cell_select(self, event):
         """
