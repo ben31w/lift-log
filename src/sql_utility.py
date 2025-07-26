@@ -25,6 +25,17 @@ SQLITE_FILE = "usr" + os.path.sep + "personal.db"
 # Filepath for the user's exercise aliases file
 ALIASES_FILE = "usr" + os.path.sep + "aliases.txt"
 
+# These are the tag names used by the Import Status Msg Area.
+# They mirror the built-in logging level names.
+# The constants built into Python logging are actually integers.
+# We care about the string representations because those are the tag names.
+# TODO there are probably cleaner ways of managing this.
+DEBUG = 'DEBUG'
+INFO = 'INFO'
+WARNING = 'WARNING'
+ERROR = 'ERROR'
+CRITICAL = 'CRITICAL'
+
 def create_tables():
     """
     Create tables in SQLite if they don't already exist. There are no primary
@@ -401,7 +412,7 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
         text_widget.configure(state='normal')
         text_widget.delete("1.0", END)
 
-    _log_import_msg(f"IMPORTING {html_filepath}", text_widget)
+    _log_import_msg(f"Importing {html_filepath}", text_widget)
 
     # Get hash and compressed content of HTML file.
     with open(html_filepath, 'r') as f:
@@ -432,24 +443,28 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
                         if year < 2000:  # Sometimes year is formatted with only two digits.
                             year += 2000
                         curr_date = date(year, month, day)
-                        _log_import_msg(f"CURR DATE: {curr_date}", text_widget)
+                        _log_import_msg(f"Current date: {curr_date}", text_widget, DEBUG)
                     except ValueError:
-                        _log_import_msg(
-                            f"FAILED TO PARSE DATE FROM {line_num}. line='{line}'  date_part='{date_part}'",
-                            text_widget,
-                            "WARNING")
+                        # TODO if we fail to parse a date from the h2 tag, should
+                        #  the sets that follow be imported at all?
+                        #  Right now, we are continuing to import them, with possibly the wrong date.
+                        _log_import_msg(f"Failed to parse date from line {line_num}: '{line}'", text_widget, WARNING)
+                        _log_import_msg(f"^got date_part='{date_part}'", text_widget, DEBUG)
+                        _log_import_msg(f"The last valid date will be used ({curr_date})", text_widget, WARNING)
 
                 # Lines with exercises are structured like this: "exercise : sets"
                 elif line.__contains__(':'):
-                    _log_import_msg(f"(line {line_num}) {line}", text_widget)
+                    _log_import_msg(f"(line {line_num}) {line}", text_widget, DEBUG)
                     exercise = _parse_exercise(line, alias_dict)
 
+                    # TODO there is some light sanitization logic, and we skip empty lines,
+                    #  but malformed lines are not checked here
                     sets_str = _sanitize_sets(line[line.index(':'):])
                     if sets_str == "":
-                        _log_import_msg("SKIPPING, NO SETS TO LOG.", text_widget, "WARNING")
+                        _log_import_msg(f"Skipping. No sets were found on line {line_num}: '{line}'", text_widget, WARNING)
                     else:
                         daily_sets_item = (exercise, curr_date, sets_str)
-                        _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget)
+                        _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget, DEBUG)
                         daily_sets_list.append(daily_sets_item)
 
     cur.execute("BEGIN TRANSACTION")
@@ -469,6 +484,7 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
         # Insert records into 'daily_sets' table with the provided import_id
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
 
+    _log_import_msg("Done importing.", text_widget)
     if text_widget is not None:
         text_widget.configure(state='disabled')
 
@@ -532,9 +548,9 @@ def _log_import_msg(msg, text_widget, level="INFO"):
     """
     Logging helper method for import_sets_via_html.
     Logs the given msg to the logger and the text_widget.
-    :param msg:
-    :param text_widget:
-    :param level:
+    :param msg:    message to log
+    :param text_widget: tkinter Text widget to send msg to
+    :param level:  logging level for msg
     :return:
     """
     # 10 = DEBUG
@@ -563,4 +579,11 @@ def _log_import_msg(msg, text_widget, level="INFO"):
         case "CRITICAL":
             logger.critical(msg)
             print_to_text_widget(msg, text_widget, level)
+
+    # match level:
+    #     case logging.DEBUG:
+    #         print()
+    #
+    # if logger_level <= level:
+    #     print_to_text_widget(msg, text_widget, level)
 
