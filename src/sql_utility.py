@@ -386,8 +386,8 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
         the sets will have an import ID that matches the new import.
         If provided, an import record will not be generated, and the sets will
         be tied to the provided import ID.
-    :param text_widget: if provided, a handler will be added to the logger
-        so that messages get logged to the text widget.
+    :param text_widget: log messages can optionally be logged to a tkinter
+       Text widget too.
     :return:
     """
     alias_dict = get_alias_dict()
@@ -537,16 +537,30 @@ def _log_import_msg(msg, text_widget, level="INFO"):
     :param level:
     :return:
     """
+    # 10 = DEBUG
+    # 20 = INFO
+    # 30 = WARNING
+    # 40 = ERROR
+    # 50 = CRITICAL
+    logger_level = logger.getEffectiveLevel()
     match level:
         case "DEBUG":
             logger.debug(msg)
+            if logger_level <= 10:
+                print_to_text_widget(msg, text_widget, level)
         case "INFO":
             logger.info(msg)
+            if logger_level <= 20:
+                print_to_text_widget(msg, text_widget, level)
         case "WARNING":
             logger.warning(msg)
+            if logger_level <= 30:
+                print_to_text_widget(msg, text_widget, level)
         case "ERROR":
             logger.error(msg)
+            if logger_level <= 40:
+                print_to_text_widget(msg, text_widget, level)
         case "CRITICAL":
             logger.critical(msg)
-    print_to_text_widget(msg, text_widget, level)
+            print_to_text_widget(msg, text_widget, level)
 

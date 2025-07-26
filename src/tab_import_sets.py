@@ -7,6 +7,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
+import tkinter.font as tkfont
 from tkinter.scrolledtext import ScrolledText
 import webbrowser
 
@@ -15,6 +16,7 @@ from tksheet import Sheet
 from common import hash_html, pad_frame
 from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
     get_imports, import_sets_via_html
+from sql_utility import logger as sql_logger
 from vertical_scrolled_frame import VerticalScrolledFrame
 from tab_my_sets import TabMySets
 from window_alias_editor import WindowAliasEditor
@@ -51,41 +53,114 @@ class TabImportSets(ttk.Frame):
         # -- Important Attributes ---
         self.tab_my_sets = tab_my_sets
         self.alias_editor_is_open = False
+        header_font = tkfont.Font(family="Arial", size=16, weight=tkfont.BOLD)
 
         # This frame contains a vertical scrolled frame, which contains an
         # interior frame where we must add content.
         main_frame = VerticalScrolledFrame(self, starting_height=starting_height)
         self.content_frame = main_frame.interior
 
+        # Configure a very small padding between widgets on the content frame.
+        # More padding can be added for specific widgets where we want to
+        # delimit the sections better.
+        # tuple is (padx_left, padx_right, pady_top, pady_bottom)
+        self.content_frame.configure(padding=(3, 3, 3, 3))
+
         # --- Define widgets ---
-        lbl_import_methods = ttk.Label(self.content_frame, text="Import Methods")
+        lbl_import_methods = ttk.Label(self.content_frame,
+                                       text="Import Methods",
+                                       font=header_font)
         import_method_notebook = ttk.Notebook(self.content_frame)
         tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self, tab_my_sets)
-
-        # Import Status msg area:
-        # Configure it so user can't type here and different log levels are colored.
-        lbl_import_status = ttk.Label(self.content_frame, text="Import Status")
+        lbl_import_status = ttk.Label(self.content_frame,
+                                      text="Import Status",
+                                      font=header_font)
         self.status_msg_area = ScrolledText(self.content_frame, height=20, width=170)
-        self.status_msg_area.configure(state='disabled')
-        self.status_msg_area.tag_config("DEBUG", foreground="gray")
-        self.status_msg_area.tag_config("INFO", foreground="black")
-        self.status_msg_area.tag_config("WARNING", foreground="orange")
-        self.status_msg_area.tag_config("ERROR", foreground="red")
-        self.status_msg_area.tag_config("CRITICAL", foreground="white", background="red")
-
-        lbl_manage_imports_title = ttk.Label(self.content_frame, text="Manage Imports")
+        lbl_manage_imports_title = ttk.Label(self.content_frame,
+                                             text="Manage Imports",
+                                             font=header_font)
         lbl_manage_imports_desc = ttk.Label(self.content_frame,
                                             text="You can view and delete your imports here.")
-
-        # The sheet displays the method, date time, file, and delete button for each of the user's imports.
-        # Each cell in the delete column has a note attached. The note is the SQLite rowid of the import.
-        # Most of the columns only contain data, but the delete column contains notes.
         self.sheet = Sheet(self.content_frame,
                            theme="light green",
                            height=200,
                            width=600,
-                           headers=["Method", "Date Time", "File", "Delete"]
-                           )
+                           headers=["Method", "Date Time", "File", "Delete"])
+        lbl_manage_exercise_aliases_title = ttk.Label(self.content_frame,
+                                                      text="Manage Exercise Aliases",
+                                                      font=header_font)
+        lbl_manage_exercise_aliases_desc = ttk.Label(self.content_frame,
+                                                     text="You can manage your exercise aliases here.")
+        btn_manage_exercise_aliases = ttk.Button(self.content_frame,
+                                                 text="Manage",
+                                                 command=lambda: self.open_alias_editor())
+        lbl_log_level = ttk.Label(self.content_frame,
+                                  text="Log Level",
+                                  font=header_font)
+        self.combobox_log_level = ttk.Combobox(self.content_frame,
+                                          values=[
+                                              'DEBUG', 'INFO', 'WARNING',
+                                              'ERROR', 'CRITICAL'
+                                          ])
+
+        # Additional configurations
+        self.config_status_msg_area()
+        self.config_sheet()
+        self.config_combobox_log_level()
+
+        # --- Grid widgets and configure rows to resize. ---
+        # sticky='NSEW' -> widget stretches in all directions when window resizes.
+        # sticky='W' -> widget sticks to west edge, but doesn't stretch
+        main_frame.grid(row=0, column=0, sticky='NSEW')
+        lbl_import_methods.grid(row=0, column=0, sticky='W')
+        import_method_notebook.grid(row=1, column=0, sticky='NSEW')
+        lbl_import_status.grid(row=2, column=0, pady=(20, 3), sticky='W')
+        self.status_msg_area.grid(row=3, column=0, sticky='NSEW')
+        lbl_manage_imports_title.grid(row=4, column=0, pady=(20, 3), sticky='W')
+        lbl_manage_imports_desc.grid(row=5, column=0, sticky='W')
+        self.sheet.grid(row=6, column=0, sticky='NSEW')
+        lbl_manage_exercise_aliases_title.grid(row=7, column=0, pady=(20, 3), sticky='NSEW')
+        lbl_manage_exercise_aliases_desc.grid(row=8, column=0, sticky='NSEW')
+        btn_manage_exercise_aliases.grid(row=9, column=0, sticky='W')
+        lbl_log_level.grid(row=10, column=0, pady=(20, 3), sticky='W')
+        self.combobox_log_level.grid(row=11, column=0, sticky='W')
+
+        # To get content to resize, we need to row/columnconfigure the content
+        # frame, this class (done here), as well as the root Tk window (done
+        # in LiftLog)
+        self.content_frame.rowconfigure(0, weight=1)
+        self.content_frame.rowconfigure(1, weight=1)
+        self.content_frame.rowconfigure(2, weight=1)
+        self.content_frame.rowconfigure(3, weight=1)
+        self.content_frame.rowconfigure(4, weight=1)
+        self.content_frame.rowconfigure(5, weight=1)
+        self.content_frame.rowconfigure(6, weight=1)
+        self.content_frame.rowconfigure(7, weight=1)
+        self.content_frame.rowconfigure(8, weight=1)
+        self.content_frame.rowconfigure(9, weight=1)
+        self.content_frame.rowconfigure(10, weight=1)
+        self.content_frame.rowconfigure(11, weight=1)
+        self.content_frame.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        # Import Method Notebook tabs
+        tab_import_via_html.grid(row=0, column=0, sticky='NSEW')
+        import_method_notebook.add(tab_import_via_html, text="HTML")
+
+    def config_status_msg_area(self):
+        """Configure import status msg area."""
+        self.status_msg_area.configure(state='disabled')
+        self.status_msg_area.tag_config("INFO", foreground="green3")
+        self.status_msg_area.tag_config("WARNING", foreground="dark orange")
+        self.status_msg_area.tag_config("ERROR", foreground="red")
+        self.status_msg_area.tag_config("CRITICAL", foreground="white", background="red")
+
+    def config_sheet(self):
+        """Configure the sheet that displays previous imports"""
+        # The sheet displays the method, date time, file, and delete button for each of the user's imports.
+        # Each cell in the delete column has a note attached. The note is the SQLite rowid of the import.
+        # Most of the columns only contain data, but the delete column contains notes.
         self.sheet.enable_bindings(
             ("single_select",  # allows cell selection
              "row_select",  # allows row selection
@@ -103,50 +178,24 @@ class TabImportSets(ttk.Frame):
         self.sheet.extra_bindings("cell_select", self.on_cell_select)
         self.update_sheet()
 
-        lbl_manage_exercise_aliases_title = ttk.Label(self.content_frame, text="Manage Exercise Aliases")
-        lbl_manage_exercise_aliases_desc = ttk.Label(self.content_frame,
-                                                     text="You can manage your exercise aliases here.")
-        btn_manage_exercise_aliases = ttk.Button(self.content_frame,
-                                                 text="Manage",
-                                                 command=lambda: self.open_alias_editor())
+    def config_combobox_log_level(self):
+        """
+        Configure the combobox that sets the logger level of the sql_utility
+        logger. (we control this logger because this is the file that handles
+        everything SQL- and import-related).
 
-
-
-        # --- Grid widgets and configure rows to resize. ---
-        # sticky='NSEW' gets a widget to stretch in all directions when the
-        # window resizes.
-        main_frame.grid(row=0, column=0, sticky='NSEW')
-        lbl_import_methods.grid(row=0, column=0, sticky='NSEW')
-        import_method_notebook.grid(row=1, column=0, sticky='NSEW')
-        lbl_import_status.grid(row=2, column=0, sticky='NSEW')
-        self.status_msg_area.grid(row=3, column=0, sticky='NSEW')
-        lbl_manage_imports_title.grid(row=4, column=0, sticky='NSEW')
-        lbl_manage_imports_desc.grid(row=5, column=0, sticky='NSEW')
-        self.sheet.grid(row=6, column=0, sticky='NSEW')
-        lbl_manage_exercise_aliases_title.grid(row=7, column=0, sticky='NSEW')
-        lbl_manage_exercise_aliases_desc.grid(row=8, column=0, sticky='NSEW')
-        btn_manage_exercise_aliases.grid(row=9, column=0)
-
-        # To get content to resize, we need to row/columnconfigure the content
-        # frame, this class (done here), as well as the root Tk window (done
-        # in LiftLog)
-        self.content_frame.rowconfigure(0, weight=1)
-        self.content_frame.rowconfigure(1, weight=1)
-        self.content_frame.rowconfigure(2, weight=1)
-        self.content_frame.rowconfigure(3, weight=1)
-        self.content_frame.rowconfigure(4, weight=1)
-        self.content_frame.rowconfigure(5, weight=1)
-        self.content_frame.rowconfigure(6, weight=1)
-        self.content_frame.rowconfigure(7, weight=1)
-        self.content_frame.rowconfigure(8, weight=1)
-        self.content_frame.rowconfigure(9, weight=1)
-        self.content_frame.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-
-        # Import Method Notebook tabs
-        tab_import_via_html.grid(row=0, column=0, sticky='NSEW')
-        import_method_notebook.add(tab_import_via_html, text="HTML")
+        ---LOGGER AND HANDLER LOGIC---
+        LOGGERS              LOGGER LEVEL    HANDLERS (name, HANDLER LEVEL)
+        app.py root logger         DEBUG  => handlers (file, DEBUG; console, WARNING)
+           tab_import_sets logger    //   => handlers (file, DEBUG; console, WARNING)
+           tab_my_sets logger        //   => handlers (file, DEBUG; console, WARNING)
+           sql_utility logger      INFO   => handlers (file, DEBUG; console, WARNING)
+                                  (^by default, can be adjusted)
+        """
+        self.combobox_log_level.set('INFO')
+        self.combobox_log_level.bind("<<ComboboxSelected>>", self.update_log_level)
+        # This spoofs the 'combobox selected event' to force a refresh.
+        self.combobox_log_level.event_generate("<<ComboboxSelected>>")
 
     def on_cell_select(self, event):
         """
@@ -226,6 +275,16 @@ class TabImportSets(ttk.Frame):
     def open_alias_editor(self):
         if not self.alias_editor_is_open:
             WindowAliasEditor(self, self.tab_my_sets)
+
+    def update_log_level(self, event: Event):
+        """
+        Set log level. Specifically, this sets the log level of the SQL utility
+        that performs the import.
+        """
+        level = self.combobox_log_level.get()
+        sql_logger.setLevel(level)
+        logger.critical(f"Updating sql_utility logger's level to {level}")
+        sql_logger.critical(f"  MY LEVEL: {sql_logger.getEffectiveLevel()}")
 
 
 class SubTabImportSetsViaHTML(ttk.Frame):

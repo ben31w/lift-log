@@ -49,6 +49,8 @@ so far.
   - (HIGH) Import Sets tab fixes
     - macOS: mouse scroll doesn't work
     - Ubuntu: mouse scroll works when there shouldn't be room to scroll.
+      - One potential solution could be adding more content to this frame so 
+        there is always room to scroll. 
     - The import status msg area looks pretty bad on some dark themes.
       (black text on dark text area)
   - (LOW) The plots don't look great when the window resizes. This is especially
