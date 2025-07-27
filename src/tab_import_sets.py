@@ -49,7 +49,6 @@ class TabImportSets(ttk.Frame):
                VerticalScrolledFrame that this frame contains.
         """
         super().__init__(parent)
-        logger.debug(f"Logger name: {logger.name}  |  Logger parent: {logger.parent.name}")
 
         # -- Important Attributes ---
         self.tab_my_sets = tab_my_sets

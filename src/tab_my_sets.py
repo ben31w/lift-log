@@ -76,7 +76,6 @@ class TabMySets(ttk.Frame):
                will be sized according to this scale. 1 is ideal scale for 1080p.
         """
         super().__init__(parent)
-        logger.debug(f"Logger name: {logger.name}  |  Logger parent: {logger.parent.name}")
 
         # Here, we configure padding for this frame, which determines the spacing
         # between all widgets that are direct children of this frame.
@@ -200,10 +199,10 @@ class TabMySets(ttk.Frame):
         date_sets_list_dict: Dict[date, list[ExerciseSet]] = {}  # {2024-10-10: [set1, set2]}
 
         # Build dict from list of sets
-        logger.info("filtering sets")
+        logger.info(f"Filtering sets for {selected_exercise}")
         for the_set in list_sets:
             the_date = the_set.date
-            logger.info(the_set)
+            logger.debug(the_set)
 
             if the_date not in date_sets_list_dict.keys():
                 # Filter list of sets to this date. Add this list to the dict.
@@ -218,6 +217,7 @@ class TabMySets(ttk.Frame):
 
         self.text_area.insert(END, to_insert)  # Update with new text
         self.text_area.configure(state="disabled")
+        logger.info(f"Done filtering sets for {selected_exercise}")
 
     def show_plots(self, event : Event):
         """

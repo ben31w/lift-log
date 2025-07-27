@@ -41,7 +41,6 @@ def create_tables():
     Create tables in SQLite if they don't already exist. There are no primary
     keys because SQLite automatically creates the ROWID field for every item.
     """
-    logger.debug(f"Logger name: {logger.name}  |  Logger parent: {logger.parent.name}")
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     # daily_sets
