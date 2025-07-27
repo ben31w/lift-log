@@ -19,11 +19,21 @@ from tab_my_sets import TabMySets
 
 
 # LOAD + CONFIGURE LOGGER
+# ---LOGGER AND HANDLER LOGIC---
+#  LOGGERS              LOGGER LEVEL    HANDLERS (name, HANDLER LEVEL)
+#  root (app.py)              DEBUG  => handlers (file, DEBUG; console, WARNING)
+#     tab_import_sets           //   =>   //
+#     tab_my_sets               //   =>   //
+#     sql_utility             INFO*  =>   //
+#  matplotlib root           WARNING =>   //
+#
+# *The level of this particular logger can adjusted through GUI
 with open("logging_config.json", "r") as f:
     config = json.load(f)
 
 logging.config.dictConfig(config)
 logger = logging.getLogger()  # root logger
+logger.debug(f"Logger name: {logger.name}")
 
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):

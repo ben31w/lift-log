@@ -20,6 +20,7 @@ from exercise_set import ExerciseSet
 from sql_utility import get_exercise_sets_dict
 
 logger = logging.getLogger(__name__)
+matplotlib.set_loglevel('warning')  # reduces log file clutter.
 
 def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> str:
     """
@@ -75,6 +76,7 @@ class TabMySets(ttk.Frame):
                will be sized according to this scale. 1 is ideal scale for 1080p.
         """
         super().__init__(parent)
+        logger.debug(f"Logger name: {logger.name}  |  Logger parent: {logger.parent.name}")
 
         # Here, we configure padding for this frame, which determines the spacing
         # between all widgets that are direct children of this frame.

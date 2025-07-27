@@ -41,6 +41,7 @@ def create_tables():
     Create tables in SQLite if they don't already exist. There are no primary
     keys because SQLite automatically creates the ROWID field for every item.
     """
+    logger.debug(f"Logger name: {logger.name}  |  Logger parent: {logger.parent.name}")
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     # daily_sets
@@ -147,14 +148,15 @@ def get_exercise_sets_dict():
     result = cur.execute("SELECT exercise, date, string FROM daily_sets")
     all_daily_sets_items = result.fetchall()
     for item in all_daily_sets_items:
-        logger.info(f'daily_sets item: {item}')
+        logger.debug(f'daily_sets item: {item}')
         # Convert daily_sets item in SQLite to ExerciseSet objects in Python
         individual_exercise_sets = get_exercise_sets_from_daily_sets(item)
 
         # Now add those ExerciseSet objects to the dict.
         if individual_exercise_sets:
             if len(individual_exercise_sets) > 6:
-                logger.info("WARNING, LOTS OF SETS FOUND")
+                logger.warning(f"More than 6 sets detected for {item}")
+                logger.warning("  These sets will still be added.")
             exercise = item[0]
             if exercise not in exercise_sets_dict.keys():
                 exercise_sets_dict[exercise] = individual_exercise_sets
@@ -163,6 +165,7 @@ def get_exercise_sets_dict():
 
     cur.close()
     con.close()
+    logger.info("Done building Exercise-Sets Dictionary")
     return exercise_sets_dict
 
 
@@ -213,13 +216,13 @@ def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets
         num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
 
         if num_reps > 100:
-            logger.warning(f"WARNING, suspiciously high number of reps {num_reps}.")
-            logger.warning("These sets won't be added.")
+            logger.warning(f"Suspiciously high number of reps. {date_of_sets}, {exercise}: {num_reps} @ {weight}.")
+            logger.warning("  This set won't be added.")
             break
 
         for i in range(num_sets):
             s = ExerciseSet(exercise=exercise, reps=num_reps, weight=weight, partial_reps=partial_reps, date=date_of_sets)
-            logger.info(f"    {s}")
+            logger.debug(f"    {s}")
             exercise_sets.append(s)
 
     return exercise_sets
@@ -251,17 +254,19 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
     # At this point, second_split should have 'setsxreps' 'weight' ... repeated
     # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
     if len(second_split) % 2 != 0:
-        logger.warning(f"SKIPPING, THIS SET STRING HAS INVALID SYNTAX.")
+        logger.warning(f"This sets string has invalid syntax: {date_of_sets}, {exercise}: {sets_str}")
+        logger.warning("  None of these sets will be added.")
         return []
 
     for i in range(0, len(second_split), 2):
         the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
         try:
             weight = float(second_split[i + 1])  # 65 70 ... 90
-            logger.info(f"  {the_sets}@{weight}")
+            logger.debug(f"  {the_sets}@{weight}")
             exercise_sets += _get_exercise_sets(exercise, weight, the_sets, date_of_sets)
         except ValueError:
-            logger.warning(f"SKIPPING MALFORMED LINE. Double check weight or syntax: {second_split[i]}@{second_split[i + 1]}")
+            logger.warning(f"A weight couldn't be parsed from this set string: {date_of_sets}, {exercise}: {sets_str}")
+            logger.warning("  Sets at the invalid weight won't be added.")
             continue
     return exercise_sets
 

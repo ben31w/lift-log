@@ -49,6 +49,7 @@ class TabImportSets(ttk.Frame):
                VerticalScrolledFrame that this frame contains.
         """
         super().__init__(parent)
+        logger.debug(f"Logger name: {logger.name}  |  Logger parent: {logger.parent.name}")
 
         # -- Important Attributes ---
         self.tab_my_sets = tab_my_sets
@@ -183,14 +184,6 @@ class TabImportSets(ttk.Frame):
         Configure the combobox that sets the logger level of the sql_utility
         logger. (we control this logger because this is the file that handles
         everything SQL- and import-related).
-
-        ---LOGGER AND HANDLER LOGIC---
-        LOGGERS              LOGGER LEVEL    HANDLERS (name, HANDLER LEVEL)
-        app.py root logger         DEBUG  => handlers (file, DEBUG; console, WARNING)
-           tab_import_sets logger    //   => handlers (file, DEBUG; console, WARNING)
-           tab_my_sets logger        //   => handlers (file, DEBUG; console, WARNING)
-           sql_utility logger      INFO   => handlers (file, DEBUG; console, WARNING)
-                                  (^by default, can be adjusted)
         """
         self.combobox_log_level.set('INFO')
         self.combobox_log_level.bind("<<ComboboxSelected>>", self.update_log_level)
