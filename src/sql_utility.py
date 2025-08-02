@@ -46,13 +46,17 @@ def create_tables():
     # daily_sets
     # This represents all the sets a user has logged for a particular exercise on a particular date.
     # Ex: all bench press sets logged on 21 June 2025.
-    # -> ('bb bench', '2025-06-21', '2x8@135, 2x6@145', 1)
+    #     -> ('bb bench', '2025-06-21', '2x8@135, 2x6@145', 1)
     # date is stored in SQLite as TEXT (YYYY-MM-DD).
+    # is_valid is a boolean (0/1), but SQLite stores booleans as INTEGER
+    # TODO comments and is_valid aren't being set or used yet
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_sets(
             exercise TEXT,
             date TEXT,
-            string TEXT,
+            sets_string TEXT,
+            comment TEXT,
+            is_valid INTEGER,
             import_id INTEGER
         )
     """)
@@ -144,7 +148,7 @@ def get_exercise_sets_dict():
     cur = con.cursor()
     exercise_sets_dict = {}
 
-    result = cur.execute("SELECT exercise, date, string FROM daily_sets")
+    result = cur.execute("SELECT exercise, date, sets_string FROM daily_sets")
     all_daily_sets_items = result.fetchall()
     for item in all_daily_sets_items:
         logger.debug(f'daily_sets item: {item}')
@@ -305,14 +309,14 @@ def _parse_exercise(ln: str, alias_dict: Dict) -> str:
     """
     Parse exercise name from a line in an HTML file.
 
-    :param ln: line in a workout file.   Ex: <li>Rear delt rows SS1 : 3x15 at 12.5<br></li>
+    :param ln: part of HTML line containing exercise (part before colon).
+               Ex: <li>Rear delt rows SS1
     :param alias_dict: alias dictionary used to resolve aliases to common names
     :return:  exercise name in the line. Ex: 'rear delt row'
     """
-    result = ln.split(':')[0]
-
-    # First characters in the line are "<li>" or "<div>", which can be ignored
-    result = result[result.index('>') + 1:]
+    # First characters in the line might be "<li>" or "<div>", which can be ignored.
+    # If these aren't the first characters, this works regardless.
+    result = ln[ln.index('>') + 1:]
 
     # Ignore anything between parenthesis
     if result.__contains__('('):
@@ -375,6 +379,8 @@ def _sanitize_sets(ln: str) -> str:
     if ln.__contains__('drop'):
         return ""
 
+    # TODO get comments from ln.
+
     result = ""
     ln = ln.replace('at', '@')
     ln = ln.replace(';', ',')
@@ -388,6 +394,14 @@ def _sanitize_sets(ln: str) -> str:
             nums_found = True
         if nums_found and char in valid_chars:
             result += char
+
+    # Some extra sanitization
+    result = result.replace(',,', ',')
+    result = result.replace(',@', '@')
+    result = result.replace('@,', '@')
+    nums = '1234567890'
+    if len(result) > 0 and result[-1] not in nums:
+        result = result[:-1]
 
     return result.strip()
 
@@ -457,13 +471,17 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
                         _log_import_msg(f"The last valid date will be used ({curr_date})", text_widget, WARNING)
 
                 # Lines with exercises are structured like this: "exercise : sets"
+                #   more specifically:
+                #     [<li>] exercise: {( {SetsxReps} | {Reps} )@weight}[, comments] [</li>]
+                #     Ex: <li>Rear delt rows SS1 : 3x15 at 12.5<br></li>
                 elif line.__contains__(':'):
                     _log_import_msg(f"(line {line_num}) {line}", text_widget, DEBUG)
-                    exercise = _parse_exercise(line, alias_dict)
+                    exercise_part, sets_str_part = line.split(':', maxsplit=1)
+                    exercise = _parse_exercise(exercise_part, alias_dict)
 
                     # TODO there is some light sanitization logic, and we skip empty lines,
                     #  but malformed lines are not checked here
-                    sets_str = _sanitize_sets(line[line.index(':'):])
+                    sets_str = _sanitize_sets(sets_str_part)
                     if sets_str == "":
                         _log_import_msg(f"Skipping. No sets were found on line {line_num}: '{line}'", text_widget, WARNING)
                     else:
@@ -482,11 +500,11 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
 
     _log_import_msg("Done importing.", text_widget)
     if text_widget is not None:
