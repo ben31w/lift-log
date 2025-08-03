@@ -21,9 +21,18 @@ bp
 bench pause reps
 bp pause reps
 
+.bb clean and press
+clean and press
+cleaning press
+
 .bb curl
 bicep bb curl
 bicep curl bb
+
+.bb deadlift
+deadlift
+deadlift bar
+deadlift bb
 
 .bb decline
 bb decline bench
@@ -46,22 +55,31 @@ incline bench
 incline bench press
 ibp
 
+.bb ohp
+ohp
+military press
+mp
+
+.bb ohp seated
+bb seated ohp
+seated military press
+
 .bb rdls
 rdls
+r deadlifts
 
 .bb row overhand
 bb row o
 bbrs o
 bb row
 bbrs
+overhand bb row
 
 .bb row underhand
 bb row u
 bbrs u
 
 .bb row with hold
-
-.bb seated ohp
 
 .bb squats
 squats
@@ -78,6 +96,15 @@ cable crunch
 
 .c curl
 cable curl
+
+.c face pulls narrow
+face pulls 1 rope
+rd rope pulls
+
+.c face pulls wide
+face pulls
+face pulls standing
+face pulls wide
 
 .c fly h-l
 cable crossover high to low
@@ -96,6 +123,18 @@ cable pulls lower
 .c lat pulldowns backwards
 backwards dp lat pulls
 behind the back lat pull down
+
+.c lat pulldowns dh
+dual handle lat pulldown
+
+.c lat pulldowns dp
+dp lat pull down
+dp lat pulldown
+dp lat pulls
+dp pulldown
+
+.c lat pulldowns dp u
+dp lat pull down underhand
 
 .c lat pulldowns kneeling
 cable kneeing lat pulldown
@@ -123,6 +162,9 @@ cable row
 cable low row
 cable row ng
 
+.c row dp
+dp row
+
 .c row lats
 cable row lats
 
@@ -149,8 +191,10 @@ around the worlds
 around the world raise
 
 .db bench
+db bench press
 bench db
 bp db
+db bp
 
 .db bicep curl
 bicep curl db
@@ -161,7 +205,8 @@ bicep curl db  on bench
 bicep curl db on bench
 bicep curl on bench
 
-.db bss
+.db bulgarian split squats
+db bss
 bss
 b split squats
 bsss
@@ -171,6 +216,41 @@ bulgarians
 .db cross body hammer curl
 alt cross body curl
 alternating cross body hammer curl
+
+.db decline
+decline db
+decline db press
+
+.db fly
+db flyes
+db flys
+
+.db incline
+db incline press
+
+.db lateral/front raise
+db later front raise combo
+
+.db ohp
+db shoulder press
+db shoulder press seated
+db seated ohp
+ohp db
+ohp db seated
+shoulder db press
+
+.db ohp standing
+db shoulder press standing
+
+.dips
+dip
+
+.hb deadlift
+deadlift hb
+
+.lp calf raise
+claf raise lp
+calf raise on lp
 
 .m ab crunch
 ab crunch machine
@@ -194,6 +274,21 @@ bes
 .m bicep curl
 bicep curl machine
 
+.m calf raise
+calf extension machine
+calf machine
+calf raise machine
+calf raise machine inner
+
+.m calf raise free weight
+calf raise plate machine
+calf raise machine plates
+
 .m hip abductor
 hip abductor
 ass abductor
+
+.sm calf raise
+calf raise smith
+calf raise smith machine
+calf raise on smith machine
