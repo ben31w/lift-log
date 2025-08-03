@@ -148,7 +148,7 @@ def get_exercise_sets_dict():
     cur = con.cursor()
     exercise_sets_dict = {}
 
-    result = cur.execute("SELECT exercise, date, sets_string FROM daily_sets")
+    result = cur.execute("SELECT exercise, date, sets_string FROM daily_sets WHERE is_valid = 1")
     all_daily_sets_items = result.fetchall()
     for item in all_daily_sets_items:
         logger.debug(f'daily_sets item: {item}')
@@ -247,28 +247,12 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
     :return:  all ExerciseSet objects that can be parsed from the inputs.
     """
     exercise_sets = []
+    sets_str_split = _split_sets_string(sets_str)
 
-    # Split sets_str into a list with format [setsxreps, wt, setsxreps, wt, ... ]  # TODO it might be nice to use tuples
-    # first_split format:  ['10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90']
-    # second_split format: ['10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90']
-    first_split = sets_str.split("@")
-    second_split = [first_split[0]]
-    for part in first_split[1:]:  # don't split by comma for the first item. The first item always indicates reps (not weight)
-        subparts = part.split(',', maxsplit=1)
-        for subpart in subparts:
-            second_split.append(subpart)
-
-    # At this point, second_split should have 'setsxreps' 'weight' ... repeated
-    # We'll consider other formats malformed for now. Maybe this could be handled more gracefully later...
-    if len(second_split) % 2 != 0:
-        logger.warning(f"This sets string has invalid syntax: {date_of_sets}, {exercise}: {sets_str}")
-        logger.warning("  None of these sets will be added.")
-        return []
-
-    for i in range(0, len(second_split), 2):
-        the_sets = second_split[i]  # '10' '~8' ... '2x2,~1'
+    for i in range(0, len(sets_str_split), 2):
+        the_sets = sets_str_split[i]  # '10' '~8' ... '2x2,~1'
         try:
-            weight = float(second_split[i + 1])  # 65 70 ... 90
+            weight = float(sets_str_split[i + 1])  # 65 70 ... 90
             logger.debug(f"  {the_sets}@{weight}")
             exercise_sets += _get_exercise_sets(exercise, weight, the_sets, date_of_sets)
         except ValueError:
@@ -276,6 +260,26 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
             logger.warning("  Sets at the invalid weight won't be added.")
             continue
     return exercise_sets
+
+
+def _split_sets_string(sets_str: str) -> list[str]:
+    """
+    Split sets_str into a list with format [setsxreps, wt, setsxreps, wt, ... ].
+    TODO it might be nice to use tuples.
+    :param sets_str: sets_str of a daily_sets item
+    :return: list of [setsxreps, wt, setsxreps, wt, ... ]
+    """
+    # input:               '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
+    # first_split format:  ['10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90']
+    # second_split format: ['10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90']
+    first_split = sets_str.split("@")
+    second_split = [first_split[0]]
+    # don't split by comma for the first item. The first item always indicates reps (not weight)
+    for part in first_split[1:]:
+        subparts = part.split(',', maxsplit=1)
+        for subpart in subparts:
+            second_split.append(subpart)
+    return second_split
 
 
 def get_alias_dict():
@@ -509,8 +513,11 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
                     if sets_str == "":
                         _log_import_msg(f"Skipping. No sets were found on line {line_num}: '{line}'", text_widget, WARNING)
                     else:
-                        # temporarily assume every sets string is valid...
-                        daily_sets_item = (exercise, curr_date, sets_str, True, comments)
+                        is_valid = _is_sets_string_valid(sets_str)
+                        if not is_valid:
+                            _log_import_msg(f"Invalid sets string found on line {line_num}: '{line}'  |  sets_str: {sets_str}", text_widget, WARNING)
+
+                        daily_sets_item = (exercise, curr_date, sets_str, is_valid, comments)
                         _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget, DEBUG)
                         daily_sets_list.append(daily_sets_item)
 
@@ -538,6 +545,35 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
     con.commit()
     cur.close()
     con.close()
+
+def _is_sets_string_valid(sets_str : str) -> bool:
+    """
+    Return True if the given sets string has valid syntax.
+
+    Current checks:
+    - sets strings without '@' are unweighted sets, which we assume are valid
+    - sets string with '@' are weighted. We check:
+      (1) does the sets string contain an equal amount of setsxreps and weights?
+      (2) can the last weight (i.e., element after last @) be converted to a float?
+
+    This is a very crude check that may falsely label some sets strings as valid.
+    The logic that reads SQLite and converts daily_sets items to
+    ExerciseSets objects performs additional checks for now.
+    """
+    if '@' not in sets_str:
+        return True
+
+    sets_str_split = _split_sets_string(sets_str)
+
+    if len(sets_str_split) % 2 != 0:  # (1)
+        return False
+
+    last_wt = sets_str_split[-1]  # (2)
+    try:
+        float(last_wt)
+    except ValueError:
+        return False
+    return True
 
 
 def update_daily_sets_to_alias():
