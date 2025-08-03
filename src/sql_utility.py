@@ -55,7 +55,7 @@ def create_tables():
             exercise TEXT,
             date TEXT,
             sets_string TEXT,
-            comment TEXT,
+            comments TEXT,
             is_valid INTEGER,
             import_id INTEGER
         )
@@ -212,14 +212,18 @@ def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets
 
         # Account for '~' (partial reps)
         partial_reps = reps.__contains__('~')
-        reps.replace('~', '')
+        reps = reps.replace('~', '')
 
         # Account for '+' (disjoint reps).  ex: 5+1 => 6
         # Also, account for half reps indicated by decimal point. ex: 4.5 => 4
-        num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
+        try:
+            num_reps = sum([math.trunc(float(r)) for r in reps.split('+')])  # "5+1" = 6
+        except ValueError:
+            logger.warning(f"Failed to parse num_reps. {date_of_sets}, {exercise}: {the_set}")
+            continue
 
         if num_reps > 100:
-            logger.warning(f"Suspiciously high number of reps. {date_of_sets}, {exercise}: {num_reps} @ {weight}.")
+            logger.warning(f"Suspiciously high number of reps. {date_of_sets}, {exercise}: {num_reps} @ {weight}")
             logger.warning("  This set won't be added.")
             break
 
@@ -367,7 +371,7 @@ def _parse_exercise(ln: str, alias_dict: Dict) -> str:
     return result
 
 
-def _sanitize_sets(ln: str) -> str:
+def _sanitize_sets(ln: str) -> (str, str):
     """
     Given the portion of a workout line indicating the sets, strip comments and
     undesirable characters.
@@ -377,33 +381,52 @@ def _sanitize_sets(ln: str) -> str:
     """
     # Skip drop sets (for now?)
     if ln.__contains__('drop'):
-        return ""
+        return "", ""
 
-    # TODO get comments from ln.
+    # Remove HTML tags. We assume that the opening HTML tag should not make it
+    # to this function call. So we are stripping <br>, </div>, </li>, etc.
+    idx_tag = ln.index('<')
+    if idx_tag != -1:
+        ln = ln[:idx_tag]
 
-    result = ""
-    ln = ln.replace('at', '@')
+    # First, attempt to retrieve comments.
+    # Split by commas, and check each part for commas:
+    # (1) If any part starts with a letter, it's a comment.
+    # (2) Within each part, if there are characters that don't fit our valid
+    #     set syntax, then they indicate the start of a comment.
     ln = ln.replace(';', ',')
-    valid_chars = '1234567890@,.+x'
-    nums_found = False
+    ln = ln.replace('at', '@')
+    parts = ln.split(',')
+    sanitized_parts = []
+    start_of_set_chars = '123456789~'
+    set_chars = start_of_set_chars + '0@,.+x '
+    comments = ""
+    for part in parts:
+        part = part.strip()
+        if len(part) == 0:
+            continue
+        elif part[0] not in start_of_set_chars:  # (1)
+            comments += f"{part} "
+            continue
 
-    for char in ln:
-        # some lines start with comments that we don't care about.
-        # Attempt to remove them by scanning for the first number or '~'.
-        if char.isnumeric() or char == '~':
-            nums_found = True
-        if nums_found and char in valid_chars:
-            result += char
+        for i in range(len(part)):  # (2)
+            if part[i] not in set_chars:
+                part = part[:i]  # set string
+                comment = part[i:]
+                comments += f"{comment} "
+                break
+        sanitized_parts.append(part)
+
+    result = ",".join(sanitized_parts)
 
     # Some extra sanitization
+    result = result.replace(' ', '')  # temporary, maybe
     result = result.replace(',,', ',')
     result = result.replace(',@', '@')
     result = result.replace('@,', '@')
-    nums = '1234567890'
-    if len(result) > 0 and result[-1] not in nums:
-        result = result[:-1]
+    result = result.replace('+@', '@')
 
-    return result.strip()
+    return result.strip(), comments.strip()
 
 
 def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=None):
@@ -478,14 +501,16 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
                     _log_import_msg(f"(line {line_num}) {line}", text_widget, DEBUG)
                     exercise_part, sets_str_part = line.split(':', maxsplit=1)
                     exercise = _parse_exercise(exercise_part, alias_dict)
+                    try:
+                        sets_str, comments = _sanitize_sets(sets_str_part)
+                    except ValueError:
+                        _log_import_msg(f"Error parsing this line. {line_num}: '{line}'", text_widget, ERROR)
 
-                    # TODO there is some light sanitization logic, and we skip empty lines,
-                    #  but malformed lines are not checked here
-                    sets_str = _sanitize_sets(sets_str_part)
                     if sets_str == "":
                         _log_import_msg(f"Skipping. No sets were found on line {line_num}: '{line}'", text_widget, WARNING)
                     else:
-                        daily_sets_item = (exercise, curr_date, sets_str)
+                        # temporarily assume every sets string is valid...
+                        daily_sets_item = (exercise, curr_date, sets_str, True, comments)
                         _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget, DEBUG)
                         daily_sets_list.append(daily_sets_item)
 
@@ -500,11 +525,11 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, import_id) VALUES (?, ?, ?, {import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, import_id) VALUES (?, ?, ?, ?, ?, {import_id})", daily_sets_list)
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, import_id) VALUES (?, ?, ?, {existing_import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, import_id) VALUES (?, ?, ?, ?, ?, {existing_import_id})", daily_sets_list)
 
     _log_import_msg("Done importing.", text_widget)
     if text_widget is not None:
