@@ -428,16 +428,20 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         self.tab_import_sets.status_msg_area.delete("1.0", END)
 
         _log_import_msg("Retrieving Apple Notes... This may take a few minutes.", self.tab_import_sets.status_msg_area)
-        script_directory = Path(__file__).parent.resolve() # AppleScript file is in same directory as this file
+
+        # Script directory is the directory of this Python file AND
+        # the AppleScript (.scpt) file
+        script_directory = Path(__file__).parent.resolve()
 
         # Run AppleScript file that gets workout notes into an HTML file
         # TODO this is very slow and freezes up the GUI. Need to multithread
         subprocess.run(["echo", "hello"])
         subprocess.run(["osascript", f"{script_directory}/workout_notes.scpt"])
 
-        # TODO HTML import
-        # import_sets_via_html(html_file, text_widget=self.tab_import_sets.status_msg_area, clear_text_widget=False)
-        # self.tab_my_sets.update_exercises()
-        # self.tab_import_sets.update_sheet()
+        # Now import the HTML file that was generated.
+        # TODO We label this as an HTML import (which it is), but it's really an Apple Notes import.
+        import_sets_via_html(f"{script_directory}/../usr/my_apple_workouts.html", text_widget=self.tab_import_sets.status_msg_area, clear_text_widget=False)
+        self.tab_my_sets.update_exercises()
+        self.tab_import_sets.update_sheet()
 
         _log_import_msg("Done retrieving Apple Notes!", self.tab_import_sets.status_msg_area)

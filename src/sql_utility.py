@@ -440,6 +440,10 @@ def import_sets_via_html(html_filepath:str,
     """
     This function reads an HTML file and inserts data into SQLite.
 
+    Assumption:
+    the HTML is formatted so that headings, paragraphs, list items, etc. are on their own line.
+    not allowed: '<h1>My Workouts</h1><h2>8/6/2025</h2>'
+
     :param html_filepath: HTML file to read
     :param existing_import_id: if not provided, an import record will be generated, and
         the sets will have an import ID that matches the new import.
