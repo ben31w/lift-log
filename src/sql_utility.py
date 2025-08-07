@@ -7,7 +7,7 @@ import os.path
 import sqlite3
 from datetime import date
 from datetime import datetime
-from tkinter import END
+from tkinter import END, Text
 from typing import Dict
 
 from common import hash_html, compress_html, decompress_html, print_to_text_widget
@@ -433,7 +433,10 @@ def _sanitize_sets(ln: str) -> (str, str):
     return result.strip(), comments.strip()
 
 
-def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=None):
+def import_sets_via_html(html_filepath:str,
+                         existing_import_id:int=None,
+                         text_widget:Text=None,
+                         clear_text_widget:bool=True):
     """
     This function reads an HTML file and inserts data into SQLite.
 
@@ -443,7 +446,9 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
         If provided, an import record will not be generated, and the sets will
         be tied to the provided import ID.
     :param text_widget: log messages can optionally be logged to a tkinter
-       Text widget too.
+        Text widget too.
+    :param clear_text_widget: can specify whether to clear the content of the text
+        widget before importing
     :return:
     """
     alias_dict = get_alias_dict()
@@ -455,7 +460,8 @@ def import_sets_via_html(html_filepath, existing_import_id=None, text_widget=Non
 
     if text_widget is not None:
         text_widget.configure(state='normal')
-        text_widget.delete("1.0", END)
+        if clear_text_widget:
+            text_widget.delete("1.0", END)
 
     _log_import_msg(f"Importing {html_filepath}", text_widget)
 

@@ -7,6 +7,9 @@ src/__pycache__/*
 *.pyc
 .venv/
 
+# macOS files we don't care about
+*.DS_Store
+
 # User-specific files aren't stored in Git.
 # (although we are storing the alias file, which is intended to be user-specific at some point)
 usr/*.html

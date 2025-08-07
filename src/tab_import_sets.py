@@ -1,8 +1,12 @@
 """
 All functions and classes related to the 'Import Sets' tab.
 """
+import datetime
 import logging
 import os
+import platform
+import subprocess
+from pathlib import Path
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
@@ -11,11 +15,12 @@ import tkinter.font as tkfont
 from tkinter.scrolledtext import ScrolledText
 import webbrowser
 
+from tkcalendar import DateEntry
 from tksheet import Sheet
 
 from common import hash_html, pad_frame
 from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
-    get_imports, import_sets_via_html
+    get_imports, import_sets_via_html, _log_import_msg
 from sql_utility import logger as sql_logger
 from vertical_scrolled_frame import VerticalScrolledFrame
 from tab_my_sets import TabMySets
@@ -72,6 +77,7 @@ class TabImportSets(ttk.Frame):
                                        font=header_font)
         import_method_notebook = ttk.Notebook(self.content_frame)
         tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self, tab_my_sets)
+        tab_import_via_apple_notes = SubTabImportSetsViaAppleNotes(import_method_notebook, self, tab_my_sets)
         lbl_import_status = ttk.Label(self.content_frame,
                                       text="Import Status",
                                       font=header_font)
@@ -146,7 +152,9 @@ class TabImportSets(ttk.Frame):
 
         # Import Method Notebook tabs
         tab_import_via_html.grid(row=0, column=0, sticky='NSEW')
+        tab_import_via_apple_notes.grid(row=0, column=0, sticky='NSEW')
         import_method_notebook.add(tab_import_via_html, text="HTML")
+        import_method_notebook.add(tab_import_via_apple_notes, text="Apple Notes")
 
     def config_status_msg_area(self):
         """Configure import status msg area."""
@@ -293,31 +301,25 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         self.tab_import_sets = tab_import_sets
         self.tab_my_sets = tab_my_sets
 
-        # Container row 0
-        row0 = ttk.Frame(self)
-        row0.grid(row=0, column=0, sticky=W)
-        lbl_import_via_html = ttk.Label(row0,
-                                        text="Import sets with an HTML file.")
-        lbl_import_via_html.grid(row=0, column=0)
+        # Define widgets, bindings, etc.
+        lbl_import_via_html = ttk.Label(self, text="Import sets with an HTML file.")
+        frm_html_filepath = ttk.Frame(self)
+        btn_import_html = ttk.Button(self, text="Import", command=self.import_html_file)
 
-        # Container row 1
-        row1 = ttk.Frame(self)
-        row1.grid(row=1, column=0, sticky=W)
-        lbl_html_filepath = ttk.Label(row1, text="HTML Filepath")
-        lbl_html_filepath.grid(row=0, column=0)
-        self.entry_html_filepath = ttk.Entry(row1, width=50)
+        lbl_html_filepath = ttk.Label(frm_html_filepath, text="HTML Filepath")
+        self.entry_html_filepath = ttk.Entry(frm_html_filepath, width=50)
         self.entry_html_filepath.bind("<Control-a>", self.select_all_text)
-        self.entry_html_filepath.grid(row=0, column=1)
-        btn_browse_html = ttk.Button(row1, text="Browse", command=self.browse_html_file)
-        btn_browse_html.grid(row=0, column=2)
+        btn_browse_html = ttk.Button(frm_html_filepath, text="Browse", command=self.browse_html_file)
 
-        # Container row 2
-        row2 = ttk.Frame(self)
-        row2.grid(row=2, column=0, sticky=W)
-        btn_import_html = ttk.Button(row2, text="Import", command=self.import_html_file)
-        btn_import_html.grid(row=0, column=0)
+        # Grid widgets onto their parents.
+        # TODO make this more responsive. the entry could resize as the window resizes.
+        lbl_import_via_html.grid(row=0, column=0, sticky='NSEW')
+        frm_html_filepath.grid(row=1, column=0, sticky='NSEW')
+        btn_import_html.grid(row=2, column=0, sticky='W')
 
-        pad_frame(self)
+        lbl_html_filepath.grid(row=0, column=0, sticky='W')
+        self.entry_html_filepath.grid(row=0, column=1, sticky='W')
+        btn_browse_html.grid(row=0, column=2, sticky='W')
 
     def browse_html_file(self):
         """Open window to browse for an HTML file."""
@@ -378,3 +380,64 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         file_hashes = [item[0] for item in get_import_file_hashes_only()]
         return file_hash in file_hashes
 
+class SubTabImportSetsViaAppleNotes(ttk.Frame):
+    """
+    This frame is where the user imports sets via Apple Notes.
+    """
+
+    def __init__(self, parent, tab_import_sets: TabImportSets, tab_my_sets: TabMySets):
+        """
+        :param parent: the notebook that stores this tab
+        :param tab_import_sets: the overarching tab
+        """
+        super().__init__(parent)
+        self.tab_import_sets = tab_import_sets
+        self.tab_my_sets = tab_my_sets
+
+        # Define widgets
+        # TODO add functionality to date entries (would require updating AppleScript file)
+        lbl_desc = ttk.Label(self, text="Import exercise sets by scanning your Apple Notes. You must be using macOS.")
+        lbl_start = ttk.Label(self, text="Start Date (nonfunctional)")
+        date_entry_start = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
+        date_entry_start.set_date(datetime.date(month=1, day=1, year=2000))
+        lbl_end = ttk.Label(self, text="End Date (nonfunctional)")
+        date_entry_end = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
+        btn_import = ttk.Button(self, text="Import", command=self.import_notes)
+
+        # Grid widgets
+        lbl_desc.grid(row=0, column=0, columnspan=2, sticky='NSEW')
+        lbl_start.grid(row=1, column=0)
+        date_entry_start.grid(row=1, column=1)
+        lbl_end.grid(row=2, column=0)
+        date_entry_end.grid(row=2, column=1)
+        btn_import.grid(row=3, column=0)
+
+        # Configure columns to resize
+        # TODO not working for some reason... column 0 is always equal in size to column 1
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=1)
+
+    def import_notes(self):
+        """Run the script that retrieves workouts from Apple Notes."""
+        system = platform.system()
+        if system != "Darwin":  # Darwin = macOS
+            messagebox.showerror("Sorry", "You must use macOS to import sets via Apple Sets")
+            return
+
+        self.tab_import_sets.status_msg_area.configure(state='normal')
+        self.tab_import_sets.status_msg_area.delete("1.0", END)
+
+        _log_import_msg("Retrieving Apple Notes... This may take a few minutes.", self.tab_import_sets.status_msg_area)
+        script_directory = Path(__file__).parent.resolve() # AppleScript file is in same directory as this file
+
+        # Run AppleScript file that gets workout notes into an HTML file
+        # TODO this is very slow and freezes up the GUI. Need to multithread
+        subprocess.run(["echo", "hello"])
+        subprocess.run(["osascript", f"{script_directory}/workout_notes.scpt"])
+
+        # TODO HTML import
+        # import_sets_via_html(html_file, text_widget=self.tab_import_sets.status_msg_area, clear_text_widget=False)
+        # self.tab_my_sets.update_exercises()
+        # self.tab_import_sets.update_sheet()
+
+        _log_import_msg("Done retrieving Apple Notes!", self.tab_import_sets.status_msg_area)
