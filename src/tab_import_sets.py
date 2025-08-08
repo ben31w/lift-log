@@ -322,6 +322,9 @@ class SubTabImportSetsViaHTML(ttk.Frame):
         self.entry_html_filepath.grid(row=0, column=1, sticky='W')
         btn_browse_html.grid(row=0, column=2, sticky='W')
 
+        # Add padding around each widget
+        pad_frame(self)
+
     def browse_html_file(self):
         """Open window to browse for an HTML file."""
         filename = filedialog.askopenfilename(filetypes=(("HTML files", "*.html"), ("All files", "*.*")))
@@ -423,11 +426,14 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=1)
 
+        # Add padding around each widget
+        pad_frame(self)
+
     def import_notes(self):
         """Initiate the Apple Notes import."""
         system = platform.system()
         if system != "Darwin":  # Darwin = macOS
-            messagebox.showerror("Sorry", "You must use macOS to import sets via Apple Sets")
+            messagebox.showerror("Sorry", "macOS is required to import sets via Apple Notes. Blame Apple!")
             return
 
         self.btn_import.config(state=DISABLED)
