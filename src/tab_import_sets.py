@@ -7,6 +7,7 @@ import os
 import platform
 import subprocess
 from pathlib import Path
+from threading import Thread
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
@@ -391,8 +392,13 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         :param tab_import_sets: the overarching tab
         """
         super().__init__(parent)
+
+        # Define fields
         self.tab_import_sets = tab_import_sets
         self.tab_my_sets = tab_my_sets
+        # Script directory is the directory of this Python file AND
+        # the AppleScript (.scpt) file
+        self.script_directory = Path(__file__).parent.resolve()
 
         # Define widgets
         # TODO add functionality to date entries (would require updating AppleScript file)
@@ -402,7 +408,7 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         date_entry_start.set_date(datetime.date(month=1, day=1, year=2000))
         lbl_end = ttk.Label(self, text="End Date (nonfunctional)")
         date_entry_end = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
-        btn_import = ttk.Button(self, text="Import", command=self.import_notes)
+        self.btn_import = ttk.Button(self, text="Import", command=self.import_notes)
 
         # Grid widgets
         lbl_desc.grid(row=0, column=0, columnspan=2, sticky='NSEW')
@@ -410,7 +416,7 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         date_entry_start.grid(row=1, column=1)
         lbl_end.grid(row=2, column=0)
         date_entry_end.grid(row=2, column=1)
-        btn_import.grid(row=3, column=0)
+        self.btn_import.grid(row=3, column=0)
 
         # Configure columns to resize
         # TODO not working for some reason... column 0 is always equal in size to column 1
@@ -418,30 +424,43 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         self.columnconfigure(1, weight=1)
 
     def import_notes(self):
-        """Run the script that retrieves workouts from Apple Notes."""
+        """Initiate the Apple Notes import."""
         system = platform.system()
         if system != "Darwin":  # Darwin = macOS
             messagebox.showerror("Sorry", "You must use macOS to import sets via Apple Sets")
             return
 
+        self.btn_import.config(state=DISABLED)
         self.tab_import_sets.status_msg_area.configure(state='normal')
         self.tab_import_sets.status_msg_area.delete("1.0", END)
 
         _log_import_msg("Retrieving Apple Notes... This may take a few minutes.", self.tab_import_sets.status_msg_area)
 
-        # Script directory is the directory of this Python file AND
-        # the AppleScript (.scpt) file
-        script_directory = Path(__file__).parent.resolve()
-
         # Run AppleScript file that gets workout notes into an HTML file
-        # TODO this is very slow and freezes up the GUI. Need to multithread
-        subprocess.run(["echo", "hello"])
-        subprocess.run(["osascript", f"{script_directory}/workout_notes.scpt"])
+        # Spin this on a separate thread so it doesn't lock up the GUI.
+        t = Thread(target=self.run_applescript)
+        t.start()
+        self.monitor(t)
 
-        # Now import the HTML file that was generated.
-        # TODO We label this as an HTML import (which it is), but it's really an Apple Notes import.
-        import_sets_via_html(f"{script_directory}/../usr/my_apple_workouts.html", text_widget=self.tab_import_sets.status_msg_area, clear_text_widget=False)
-        self.tab_my_sets.update_exercises()
-        self.tab_import_sets.update_sheet()
+    def run_applescript(self):
+        """Run the script that retrieves workouts from Apple Notes."""
+        subprocess.run(["osascript", f"{self.script_directory}/workout_notes.scpt"])
 
-        _log_import_msg("Done retrieving Apple Notes!", self.tab_import_sets.status_msg_area)
+    def monitor(self, thread:Thread):
+        """
+        Monitor the given thread:
+        - If the thread is alive, keep monitoring (check every second)
+        - If the thread is done, import the HTML file that was generated and re-enable the import button.
+        """
+        if thread.is_alive():
+            self.after(1000, lambda: self.monitor(thread))
+        else:
+            # Now import the HTML file that was generated.
+            # TODO We label this as an HTML import (which it is), but it's really an Apple Notes import.
+            import_sets_via_html(f"{self.script_directory}/../usr/my_apple_workouts.html",
+                                 text_widget=self.tab_import_sets.status_msg_area, clear_text_widget=False)
+            self.tab_my_sets.update_exercises()
+            self.tab_import_sets.update_sheet()
+
+            _log_import_msg("Done retrieving Apple Notes!", self.tab_import_sets.status_msg_area)
+            self.btn_import.config(state=NORMAL)
