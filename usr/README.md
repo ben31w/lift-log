@@ -1,4 +1,4 @@
-# Overview
+# `usr` Directory
 This directory contains user-specific data:
 - SQLite file (`personal.db`)
 - Decompressed HTML files
