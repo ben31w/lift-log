@@ -30,7 +30,7 @@ If importing from Apple Notes, there are a few interchangeable characters:
 - ',' and ';'
 - '@' and ' at '
 
-## My Sets
+### My Sets
 
 Once you have imported some exercise sets, you can view progress plots for any
 exercise. Each exercise is given four scatter plots:
@@ -57,29 +57,12 @@ Once set up, the ideal way to run the app is:
 
 Since 2021, I've used my phone to jot down my exercise sets. I have several 
 years of personal exercise data in Apple Notes. But Apple Notes isn't great for
-visualizing progressive overload/progress over time :/
+visualizing progressive overload/progress over time :/ (as an aside: the search 
+functionality in Apple Notes is also atrocious: it often returns results that 
+don't match your search at all!)
 
 To solve this problem, I started developing an app that could ingest 
 exercise data from Apple Notes and produce appealing visualizations. I'm not 
 sure how useful of a fitness tool this will end up being. But the project 
 combines my passions for fitness and programming, and I've enjoyed it a lot
 so far. 
-
-## TODOs with (PRIORITY) (ESTIMATED TIME REQUIRED)
-- (MEDIUM) (4 hours) Package the app + dependencies into an executable.
-- (MEDIUM) (<1 hr) Add functionality to the date entries for Apple Notes imports
-- (MEDIUM) (8 hrs) Make the progress plots more appealing.
-  - Plotly is better for interactive plots. Matplotlib was chosen for simplicity
-    and easy integration with Tkinter. Plotly charts probably need to be embedded
-    in a webpage to appear in Tkinter. But it could be worth it.
-  - Add best-fit lines.
-  - The plots don't look great when the window resizes, especially on small 
-    resolution screens. The fonts on the plots don't resize. This might fix itself
-    if we switch to Plotly.
-- (MEDIUM) (2 hrs) A tab/some sort of view for all sets, date organized. Could be a
-    a simple SQLite retrieval + display
-- (LOW) (UNK) On macOS: mouse scroll doesn't work on Import Sets tab
-- (LOW) (UNK) Import sets by processing images. This seems very advanced.
-- (LOW) (UNK) Containerize this app. Apparently, this is difficult for 
-  Tkinter/GUI apps. It could solve the requirement for Python 3.10+ and 
-  macOS for Apple Notes imports.
