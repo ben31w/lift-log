@@ -444,7 +444,7 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
 
         # Run AppleScript file that gets workout notes into an HTML file
         # Spin this on a separate thread so it doesn't lock up the GUI.
-        t = Thread(target=self.run_applescript)
+        t = Thread(target=self.run_applescript, daemon=True)
         t.start()
         self.monitor(t)
 
@@ -464,7 +464,9 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
             # Now import the HTML file that was generated.
             # TODO We label this as an HTML import (which it is), but it's really an Apple Notes import.
             import_sets_via_html(f"{self.script_directory}/../usr/my_apple_workouts.html",
-                                 text_widget=self.tab_import_sets.status_msg_area, clear_text_widget=False)
+                                 text_widget=self.tab_import_sets.status_msg_area,
+                                 clear_text_widget=False,
+                                 method='Apple Notes')
             self.tab_my_sets.update_exercises()
             self.tab_import_sets.update_sheet()
 

@@ -15,10 +15,6 @@ from exercise_set import ExerciseSet
 
 logger = logging.getLogger(__name__)
 
-# Methods for importing exercise sets, implemented and not-yet-implemented.
-HTML = 'HTML'
-APPLE_NOTES = 'Apple Notes'
-
 # Filepath for the user's SQLite file
 SQLITE_FILE = "usr" + os.path.sep + "personal.db"
 
@@ -436,7 +432,8 @@ def _sanitize_sets(ln: str) -> (str, str):
 def import_sets_via_html(html_filepath:str,
                          existing_import_id:int=None,
                          text_widget:Text=None,
-                         clear_text_widget:bool=True):
+                         clear_text_widget:bool=True,
+                         method:str='HTML'):
     """
     This function reads an HTML file and inserts data into SQLite.
 
@@ -453,6 +450,8 @@ def import_sets_via_html(html_filepath:str,
         Text widget too.
     :param clear_text_widget: can specify whether to clear the content of the text
         widget before importing
+    :param method: The method for this import, which we store in SQLite and display in the GUI.
+        Default to HTML.
     :return:
     """
     alias_dict = get_alias_dict()
@@ -538,7 +537,7 @@ def import_sets_via_html(html_filepath:str,
         # Insert record into 'import' table
         now = datetime.today()
         now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
-        cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content, method) VALUES(?, ?, ?, ?)", (now_str, file_hash, compressed_content, HTML))
+        cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content, method) VALUES(?, ?, ?, ?)", (now_str, file_hash, compressed_content, method))
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
