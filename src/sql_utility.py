@@ -68,7 +68,7 @@ def create_tables():
             date_time TEXT,
             file_hash TEXT,
             compressed_file_content BLOB,
-            method TEXT
+            name TEXT
         )
     """)
 
@@ -83,7 +83,7 @@ def get_imports():
     """
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
-    result = cur.execute("SELECT method, date_time, rowid FROM import")
+    result = cur.execute("SELECT name, date_time, rowid FROM import")
     imports = result.fetchall()  # fetch list of tuples
     cur.close()
     con.close()
@@ -450,8 +450,8 @@ def import_sets_via_html(html_filepath:str,
         Text widget too.
     :param clear_text_widget: can specify whether to clear the content of the text
         widget before importing
-    :param method: The method for this import, which we store in SQLite and display in the GUI.
-        Default to HTML.
+    :param method: The method for this import (HTML, Apple Notes), which becomes part of the
+        name that we store in SQLite and display in the GUI.
     :return:
     """
     alias_dict = get_alias_dict()
@@ -535,13 +535,17 @@ def import_sets_via_html(html_filepath:str,
     # INSERT INTO SQLITE
     if existing_import_id is None:
         # Insert record into 'import' table
-        now = datetime.today()
-        now_str = f"{now.year}/{now.month}/{now.day} {now.hour}:{now.minute}:{now.second}"
-        cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content, method) VALUES(?, ?, ?, ?)", (now_str, file_hash, compressed_content, method))
+        cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content) VALUES(DATETIME(), ?, ?)", (file_hash, compressed_content))
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
         cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, import_id) VALUES (?, ?, ?, ?, ?, {import_id})", daily_sets_list)
+
+        # Now, update the 'name' field of our new 'import' record.
+        min_date = cur.execute(f"SELECT MIN(date) FROM daily_sets WHERE import_id = {import_id}").fetchone()[0]
+        max_date = cur.execute(f"SELECT MAX(date) FROM daily_sets WHERE import_id = {import_id}").fetchone()[0]
+        name = f"{method}, {min_date} to {max_date}"
+        cur.execute(f"UPDATE import SET name = '{name}' WHERE ROWID = {import_id}")
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id

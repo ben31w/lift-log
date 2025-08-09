@@ -92,7 +92,7 @@ class TabImportSets(ttk.Frame):
                            theme="light green",
                            height=200,
                            width=600,
-                           headers=["Method", "Date Time", "File", "Delete"])
+                           headers=["Name", "Import Time", "File", "Delete"])
         lbl_manage_exercise_aliases_title = ttk.Label(self.content_frame,
                                                       text="Manage Exercise Aliases",
                                                       font=header_font)
@@ -245,8 +245,8 @@ class TabImportSets(ttk.Frame):
         sheet_data = []
         imports = get_imports()
         for i in range(len(imports)):
-            imprt_method, imprt_date_time, imprt_id = imports[i]
-            sheet_data.append([imprt_method, imprt_date_time, 'View', 'Delete'])
+            imprt_name, imprt_date_time, imprt_id = imports[i]
+            sheet_data.append([imprt_name, imprt_date_time, 'View', 'Delete'])
             # Update notes: store the import ID in some cells.
             self.sheet.note(i, FILE_COL_IDX, note=imprt_id)
             self.sheet.note(i, DELETE_COL_IDX, note=imprt_id)
