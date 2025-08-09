@@ -399,26 +399,25 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         # Define fields
         self.tab_import_sets = tab_import_sets
         self.tab_my_sets = tab_my_sets
-        # Script directory is the directory of this Python file AND
-        # the AppleScript (.scpt) file
+        # Script directory is the directory of this Python file AND the AppleScript (.scpt) file
         self.script_directory = Path(__file__).parent.resolve()
 
         # Define widgets
         # TODO add functionality to date entries (would require updating AppleScript file)
         lbl_desc = ttk.Label(self, text="Import exercise sets by scanning your Apple Notes. You must be using macOS.")
-        lbl_start = ttk.Label(self, text="Start Date (nonfunctional)")
-        date_entry_start = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
-        date_entry_start.set_date(datetime.date(month=1, day=1, year=2000))
-        lbl_end = ttk.Label(self, text="End Date (nonfunctional)")
-        date_entry_end = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
+        lbl_start = ttk.Label(self, text="Start Date")
+        self.date_entry_start = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
+        self.date_entry_start.set_date(datetime.date(month=1, day=1, year=2000))
+        lbl_end = ttk.Label(self, text="End Date")
+        self.date_entry_end = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
         self.btn_import = ttk.Button(self, text="Import", command=self.import_notes)
 
         # Grid widgets
         lbl_desc.grid(row=0, column=0, columnspan=2, sticky='NSEW')
         lbl_start.grid(row=1, column=0)
-        date_entry_start.grid(row=1, column=1)
+        self.date_entry_start.grid(row=1, column=1)
         lbl_end.grid(row=2, column=0)
-        date_entry_end.grid(row=2, column=1)
+        self.date_entry_end.grid(row=2, column=1)
         self.btn_import.grid(row=3, column=0)
 
         # Configure columns to resize
@@ -450,7 +449,12 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
 
     def run_applescript(self):
         """Run the script that retrieves workouts from Apple Notes."""
-        subprocess.run(["osascript", f"{self.script_directory}/workout_notes.scpt"])
+        # AppleScript supports m/d/y format.
+        selected_start = self.date_entry_start.get_date()
+        selected_end = self.date_entry_end.get_date()
+        logger.info(f"start date: {selected_start.strftime('%m/%d/%y')}")
+        logger.info(f"end date:   {selected_end.strftime('%m/%d/%y')}")
+        subprocess.run(["osascript", f"{self.script_directory}/workout_notes.scpt", selected_start.strftime('%m/%d/%y'), selected_end.strftime('%m/%d/%y')])
 
     def monitor(self, thread:Thread):
         """
