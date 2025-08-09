@@ -21,7 +21,7 @@ from tksheet import Sheet
 
 from common import hash_html, pad_frame
 from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
-    get_imports, import_sets_via_html, _log_import_msg
+    get_imports, import_sets_via_html, _log_import_msg, exercise_sets_already_exist
 from sql_utility import logger as sql_logger
 from vertical_scrolled_frame import VerticalScrolledFrame
 from tab_my_sets import TabMySets
@@ -430,30 +430,38 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
 
     def import_notes(self):
         """Initiate the Apple Notes import."""
+        # This feature is only supported on macOS (Darwin)
         system = platform.system()
-        if system != "Darwin":  # Darwin = macOS
+        if system != "Darwin":
             messagebox.showerror("Sorry", "macOS is required to import sets via Apple Notes. Blame Apple!")
             return
 
-        self.btn_import.config(state=DISABLED)
-        self.tab_import_sets.status_msg_area.configure(state='normal')
-        self.tab_import_sets.status_msg_area.delete("1.0", END)
+        # Warn user if sets already exist within the provided dates
+        selected_start = self.date_entry_start.get_date()
+        selected_end = self.date_entry_end.get_date()
+        if exercise_sets_already_exist(selected_start, selected_end):
+            proceed = messagebox.askokcancel("Warning", "Exercise sets already exist within the provided start and end date. Proceed anyways?")
+        else:
+            proceed = True
 
-        _log_import_msg("Retrieving Apple Notes... This may take a few minutes.", self.tab_import_sets.status_msg_area)
+        if proceed:
+            self.btn_import.config(state=DISABLED)
+            self.tab_import_sets.status_msg_area.configure(state='normal')
+            self.tab_import_sets.status_msg_area.delete("1.0", END)
 
-        # Run AppleScript file that gets workout notes into an HTML file
-        # Spin this on a separate thread so it doesn't lock up the GUI.
-        t = Thread(target=self.run_applescript, daemon=True)
-        t.start()
-        self.monitor(t)
+            _log_import_msg("Retrieving Apple Notes... This may take a few minutes.", self.tab_import_sets.status_msg_area)
+
+            # Run AppleScript file that gets workout notes into an HTML file
+            # Spin this on a separate thread so it doesn't lock up the GUI.
+            t = Thread(target=self.run_applescript, daemon=True)
+            t.start()
+            self.monitor(t)
 
     def run_applescript(self):
         """Run the script that retrieves workouts from Apple Notes."""
         # AppleScript supports m/d/y format.
         selected_start = self.date_entry_start.get_date()
         selected_end = self.date_entry_end.get_date()
-        logger.info(f"start date: {selected_start.strftime('%m/%d/%y')}")
-        logger.info(f"end date:   {selected_end.strftime('%m/%d/%y')}")
         subprocess.run(["osascript", f"{self.script_directory}/workout_notes.scpt", selected_start.strftime('%m/%d/%y'), selected_end.strftime('%m/%d/%y')])
 
     def monitor(self, thread:Thread):
@@ -466,7 +474,6 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
             self.after(1000, lambda: self.monitor(thread))
         else:
             # Now import the HTML file that was generated.
-            # TODO We label this as an HTML import (which it is), but it's really an Apple Notes import.
             import_sets_via_html(f"{self.script_directory}/../usr/my_apple_workouts.html",
                                  text_widget=self.tab_import_sets.status_msg_area,
                                  clear_text_widget=False,

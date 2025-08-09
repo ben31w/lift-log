@@ -127,6 +127,20 @@ def delete_import(import_row_id):
     con.close()
 
 
+def exercise_sets_already_exist(start_date:datetime.date, end_date:datetime.date) -> bool:
+    """Check if exercise sets already exist within the given start and end dates."""
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    result = cur.execute(f"SELECT date FROM daily_sets WHERE date >= '{start_date.strftime('%Y-%m-%d')}' AND date <= '{end_date.strftime('%Y-%m-%d')}'")
+    sets_already_exist = result.fetchone() is not None
+
+    cur.close()
+    con.close()
+
+    return sets_already_exist
+
+
 def get_exercise_sets_dict():
     """
     Retrieve daily_sets items from SQLite, convert them into ExerciseSet
