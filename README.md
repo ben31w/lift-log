@@ -9,12 +9,13 @@ your notes, finds exercises, and generates progress plots for each exercise.
 
 ## How it works
 
-### Import Sets
+### 1. Import Sets
 
 Exercise sets must be imported via an HTML file or Apple Notes.
 The `html` directory contains example HTML files that can be imported.
+Regardless of the medium you use, there are requirements for detecting exercise sets.
 
-In order to detect exercise sets, they must follow a specific syntax:
+Required syntax for exercise sets:
 - exercise: Reps,SetxReps@Weight, SetxReps,~Reps@AnotherWeight, ...
 - exercise: Reps,SetsxReps,~Reps  (no weight)
 
@@ -22,15 +23,18 @@ Examples:
 - bench press: 2x10@135, 2x8@145, ~5@155
 - pull ups: 10,2x8,~7
 
-You can also have comments at the end of each line that will be ignored.
-'~' is an acceptable syntax that indicates partial reps.
+Notes:
+- You can also have comments at the end of each line that will be ignored.
+- '~' is an acceptable syntax that indicates partial reps.
+- Regarding the required syntax, the following substitutions are acceptable: 
+    - ':' and '-'
+    - ',' and ';'
+    - '@' and ' at '
+- If importing via Apple Notes, all your notes will be read. Only notes with names 
+  starting in a M/D or M/D/Y date (ex: '1/1', '2/1/24 pull') will be considered 
+  valid workout notes. All other notes will be ignored.
 
-If importing from Apple Notes, there are a few interchangeable characters: 
-- ':' and '-'
-- ',' and ';'
-- '@' and ' at '
-
-### My Sets
+### 2. Progress Plots
 
 Once you have imported some exercise sets, you can view progress plots for any
 exercise. Each exercise is given four scatter plots:

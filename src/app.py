@@ -15,7 +15,7 @@ from screeninfo import get_monitors
 
 from sql_utility import create_tables
 from tab_import_sets import TabImportSets
-from tab_my_sets import TabMySets
+from tab_progress_plots import TabProgressPlots
 
 
 # LOAD + CONFIGURE LOGGER
@@ -85,20 +85,20 @@ class LiftLog(Tk):
 
         # Init main notebook and tabs. Each notebook tab is a frame.
         main_notebook = ttk.Notebook(self)
-        tab_my_sets = TabMySets(main_notebook, self.mpl_scale)
-        tab_import_sets = TabImportSets(main_notebook, tab_my_sets, screen_height_px)
+        tab_progress_plots = TabProgressPlots(main_notebook, self.mpl_scale)
+        tab_import_sets = TabImportSets(main_notebook, tab_progress_plots, screen_height_px)
 
         # Define layout. For the frames to stretch:
         # - specify sticky when gridding AND
         # - specify weight on the parent's rows and columns!!
         main_notebook.grid(row=0, column=0, sticky='NSEW')
-        tab_my_sets.grid(row=0, column=0, sticky='NSEW')
+        tab_progress_plots.grid(row=0, column=0, sticky='NSEW')
         tab_import_sets.grid(row=0, column=0, sticky='NSEW')
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
-        main_notebook.add(tab_my_sets, text="My Sets")
+        main_notebook.add(tab_progress_plots, text="Progress Plots")
         main_notebook.add(tab_import_sets, text="Import Sets")
 
     # This is needed for full exception logging: sometimes Tkinter swallows exceptions.

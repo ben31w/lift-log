@@ -1,5 +1,5 @@
 """
-All functions and classes related to the 'My Sets' tab.
+All functions and classes related to the 'Progress Plots' tab.
 """
 from datetime import date, timedelta
 import logging
@@ -61,15 +61,13 @@ def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> s
 
 
 
-class TabMySets(ttk.Frame):
+class TabProgressPlots(ttk.Frame):
     """
-    This frame is where the user views their exercise sets.
-    The user selects an exercise, and their sets are displayed in text and
-    graphical view.
+    This frame is where the user views progress plots for each exercise.
     """
     def __init__(self, parent, mpl_scale):
         """
-        Constructor for My Sets tab.
+        Constructor for Progress Plots tab.
         :param parent: a reference to the notebook that stores this tab.
                Required by Tkinter.
         :param mpl_scale: MatPlotLib scale: when the MPL plots are created, they
