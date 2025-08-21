@@ -6,6 +6,13 @@ from tkinter import END, Text
 from tkinter import ttk
 import zlib
 
+ALL = 'all'
+ANY = "Any"
+HAS_COMMENTS = "Has comments"
+NO_COMMENTS = "No comments"
+INVALID = "Invalid"
+VALID = "Valid"
+
 def pad_frame(frame: ttk.Frame):
     """
     Add padding to each widget inside a frame. Call this after the frame's

@@ -1,16 +1,17 @@
 """
 Contains utility functions for interacting with the SQLite database.
 """
+import datetime
 import logging
 import math
 import os.path
 import sqlite3
-from datetime import date
-from datetime import datetime
 from tkinter import END, Text
 from typing import Dict
 
-from common import hash_html, compress_html, decompress_html, print_to_text_widget
+from common import (hash_html, compress_html, decompress_html,
+                    print_to_text_widget, ALL, ANY, VALID, HAS_COMMENTS,
+                    NO_COMMENTS, INVALID)
 from exercise_set import ExerciseSet
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,72 @@ def create_tables():
 
     cur.close()
     con.close()
+
+def get_first_date(exercise=None):
+    """
+    Return earliest date that the given exercise was logged, or the earliest date
+    that any exercise was logged.
+    :param exercise:
+    :return:
+    """
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    if exercise is None or exercise == ALL:
+        result = cur.execute(f"SELECT min(date) FROM daily_sets")
+    else:
+        result = cur.execute(f"SELECT min(date) FROM daily_sets where exercise = '{exercise}'")
+    date_str = result.fetchone()[0]
+    y, m, d = [int(p) for p in date_str.split('-')]
+    dt = datetime.date(year=y, month=m, day=d)
+
+    cur.close()
+    con.close()
+    return dt
+
+def get_daily_sets(exercise:str=ALL, start_date:datetime.date=None,
+                   end_date:datetime.date=None, comments:str=ANY, valid:str=ANY):
+    """
+    Retrieve daily sets items from SQLite, and return them as a list of tuples.
+    This returns the fields needed to build the View & Edit Sets table, so it
+    also includes some extra info from the import table.
+    :return: [(daily_sets item),...]
+    """
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    where_conditions = []
+    if exercise != ALL:
+        where_conditions.append(f"daily_sets.exercise = '{exercise}'")
+    if start_date is not None:
+        where_conditions.append(f"daily_sets.date >= '{start_date.strftime('%Y-%m-%d')}'")
+    if end_date is not None:
+        where_conditions.append(f"daily_sets.date <= '{end_date.strftime('%Y-%m-%d')}'")
+    if comments == HAS_COMMENTS:
+        where_conditions.append("daily_sets.comments != ''")
+    elif comments == NO_COMMENTS:
+        where_conditions.append("daily_sets.comments = ''")
+    if valid == INVALID:
+        where_conditions.append("daily_sets.is_valid = 0")
+    elif valid == VALID:
+        where_conditions.append("daily_sets.is_valid = 1")
+
+    if len(where_conditions) == 0:
+        where_str = ''
+    else:
+        where_str = "WHERE " + " AND ".join(where_conditions)
+
+    result = cur.execute(f"""
+        SELECT daily_sets.ROWID, daily_sets.date, daily_sets.exercise, daily_sets.sets_string, daily_sets.comments, daily_sets.is_valid, import.name, import.date_time 
+        FROM daily_sets 
+        FULL OUTER JOIN import ON daily_sets.import_id = import.ROWID
+        {where_str}
+        ORDER BY daily_sets.date DESC
+    """)
+    items = result.fetchall()  # fetch list of tuples
+    cur.close()
+    con.close()
+    return items
 
 
 def get_imports():
@@ -189,7 +256,7 @@ def get_exercise_sets_from_daily_sets(daily_sets_item : tuple [str, str, str]):
     """
     exercise, date_str, sets_str = daily_sets_item
     y, m, d = [int(p) for p in date_str.split('-')]
-    date_of_sets = date(year=y, month=m, day=d)
+    date_of_sets = datetime.date(year=y, month=m, day=d)
     if sets_str.__contains__('@'):
         # These are sets for a typical weighted exercise
         return _get_weight_and_exercise_sets(exercise, sets_str, date_of_sets)
@@ -198,7 +265,7 @@ def get_exercise_sets_from_daily_sets(daily_sets_item : tuple [str, str, str]):
         return _get_exercise_sets(exercise, 0, sets_str, date_of_sets)
 
 
-def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets: date):
+def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets: datetime.date):
     """
     This is the method that actually returns the ExerciseSet objects.
 
@@ -245,7 +312,7 @@ def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets
     return exercise_sets
 
 
-def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: date):
+def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: datetime.date):
     """
     This function takes all the components of an SQL daily_sets item.
     It parses the string portion; delimits it by setsxreps + wt pairs; and for
@@ -510,7 +577,7 @@ def import_sets_via_html(html_filepath:str,
                         month, day, year = [int(item) for item in date_part.split("/", 3)]
                         if year < 2000:  # Sometimes year is formatted with only two digits.
                             year += 2000
-                        curr_date = date(year, month, day)
+                        curr_date = datetime.date(year, month, day)
                         _log_import_msg(f"Current date: {curr_date}", text_widget, DEBUG)
                     except ValueError:
                         # TODO if we fail to parse a date from the h2 tag, should

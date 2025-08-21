@@ -1,10 +1,10 @@
 """
 This class is a window where the user can edit their exercise aliases.
 """
-from tkinter import TclError, Text, Toplevel
+from tkinter import TclError, Toplevel
 from tkinter import messagebox
 from tkinter import ttk
-from tkinter.constants import END, INSERT, NSEW, SEL
+from tkinter.constants import END, INSERT, SEL
 from tkinter.scrolledtext import ScrolledText
 
 from sql_utility import ALIASES_FILE, update_daily_sets_to_alias

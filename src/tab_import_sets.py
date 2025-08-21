@@ -171,12 +171,11 @@ class TabImportSets(ttk.Frame):
         # Each cell in the delete column has a note attached. The note is the SQLite rowid of the import.
         # Most of the columns only contain data, but the delete column contains notes.
         self.sheet.enable_bindings(
-            ("single_select",  # allows cell selection
-             "row_select",  # allows row selection
-             "column_select",  # allows column selection
-             "arrowkeys",  # navigation
+            ("single_select",
+             "row_select",
+             "column_select",
+             "arrowkeys",
              "right_click_popup_menu",
-             "rc_select",
              "copy",
              "select_all",
              "drag_select",

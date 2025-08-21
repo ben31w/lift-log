@@ -1,0 +1,236 @@
+"""
+All functions and classes related to the 'View & Edit Sets' tab.
+"""
+import datetime
+import logging
+from tkinter import *
+from tkinter import ttk
+
+from tkcalendar import DateEntry
+from tksheet import Sheet
+
+from sql_utility import get_daily_sets, get_first_date
+from src.common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
+from src.tab_progress_plots import TabProgressPlots
+
+logger = logging.getLogger(__name__)
+
+# Column index is 0-based. These are the column indexes for the sheet of exercise sets.
+DATE_COL = 0
+EXERCISE_COL = 1
+SETS_STRING_COL = 2
+COMMENTS_COL = 3
+VALID_COL = 4
+IMPORT_NAME_COL = 5
+IMPORT_TIME_COL = 6
+DELETE_COL = 7
+
+class TabViewEditSets(ttk.Frame):
+    """
+    This frame displays the user's exercise sets in a tabular format, and the
+    user can view or edit them.
+    """
+
+    def __init__(self, parent, tab_progress_plots: TabProgressPlots, starting_height: int = 1080):
+        """
+        Constructor for View & Edit Sets tab.
+        :param parent: a reference to the notebook that stores this tab.
+               Required by Tkinter.
+        :param tab_progress_plots: a reference to the Progress Plots Tab is needed because
+               we update elements on that tab as imports are managed.
+        :param starting_height: starting height of this frame, passed to the
+               VerticalScrolledFrame that this frame contains.
+        """
+        super().__init__(parent)
+
+        self.tab_progress_plots = tab_progress_plots
+
+        # Here, we configure padding for this frame, which determines the spacing
+        # between all widgets that are direct children of this frame.
+        self.configure(padding=(3,3,3,3))
+
+        # --- Define widgets ---
+        # self-level
+        self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
+        self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
+        self.btn_save = ttk.Button(self, text="SAVE NONFUNCTIONAL")
+        self.sheet = Sheet(self,
+                           theme="light green",
+                           height=980,
+                           width=1680,
+                           headers=["Date", "Exercise", "Sets", "Comments",
+                                    "Valid*", "Import*", "Import Time*", "Delete*"])
+
+        # sub-self-level
+        self.lbl_exercise = ttk.Label(self.frm_entries, text="Exercise")
+
+        self.combobox = ttk.Combobox(self.frm_entries, width=20)
+        exercises = sorted(list(self.tab_progress_plots.esd.keys()))
+        self.combobox['values'] = [ALL] + exercises
+        self.combobox.set(ALL)
+        self.combobox.bind("<<ComboboxSelected>>", self.update_sheet_from_combobox)
+
+        self.lbl_start_date = ttk.Label(self.frm_entries, text="Start Date")
+        self.date_entry_start = DateEntry(self.frm_entries,
+                                          width=12,
+                                          background='darkblue',
+                                          foreground='white',
+                                          borderwidth=2)
+        self.date_entry_start.bind("<<DateEntrySelected>>", self.update_sheet)
+        self.lbl_end_date = ttk.Label(self.frm_entries, text="End Date")
+        self.date_entry_end = DateEntry(self.frm_entries,
+                                        width=12,
+                                        background='darkblue',
+                                        foreground='white',
+                                        borderwidth=2)
+        self.date_entry_end.bind("<<DateEntrySelected>>", self.update_sheet)
+
+        self.lbl_comments = ttk.Label(self.frm_radiobuttons, text="Comments")
+        self.selected_comments = StringVar(value=ANY)
+        self.rb_any_comments = ttk.Radiobutton(self.frm_radiobuttons,
+                                               text=ANY,
+                                               value=ANY,
+                                               variable=self.selected_comments,
+                                               command=self._update_sheet)
+        self.rb_has_comments = ttk.Radiobutton(self.frm_radiobuttons,
+                                               text=HAS_COMMENTS,
+                                               value=HAS_COMMENTS,
+                                               variable=self.selected_comments,
+                                               command=self._update_sheet)
+        self.rb_no_comments = ttk.Radiobutton(self.frm_radiobuttons,
+                                              text=NO_COMMENTS,
+                                              value=NO_COMMENTS,
+                                              variable=self.selected_comments,
+                                              command=self._update_sheet)
+
+        self.lbl_valid = ttk.Label(self.frm_radiobuttons, text="Valid")
+        self.selected_valid = StringVar(value=ANY)
+        self.rb_any_valid = ttk.Radiobutton(self.frm_radiobuttons,
+                                            text=ANY,
+                                            value=ANY,
+                                            variable=self.selected_valid,
+                                            command=self._update_sheet)
+        self.rb_invalid = ttk.Radiobutton(self.frm_radiobuttons,
+                                          text=INVALID,
+                                          value=INVALID,
+                                          variable=self.selected_valid,
+                                          command=self._update_sheet)
+        self.rb_valid = ttk.Radiobutton(self.frm_radiobuttons,
+                                        text=VALID,
+                                        value=VALID,
+                                        variable=self.selected_valid,
+                                        command=self._update_sheet)
+
+        # --- Grid widgets ---
+        # self-level
+        self.frm_entries.grid(row=0, column=0, sticky='W')
+        self.frm_radiobuttons.grid(row=1, column=0, sticky='W')
+        self.btn_save.grid(row=2, column=0, sticky='W')
+        self.sheet.grid(row=3, column=0, sticky='NSEW')
+
+        # sub-self-level
+        self.lbl_exercise.grid(row=0, column=0, sticky='W')
+        self.combobox.grid(row=0, column=1, sticky='W')
+        self.lbl_start_date.grid(row=0, column=2, sticky='W')
+        self.date_entry_start.grid(row=0, column=3, sticky='W')
+        self.lbl_end_date.grid(row=0, column=4, sticky='W')
+        self.date_entry_end.grid(row=0, column=5, sticky='W')
+
+        self.lbl_comments.grid(row=0, column=0, sticky='W')
+        self.rb_any_comments.grid(row=0, column=1, sticky='W')
+        self.rb_has_comments.grid(row=0, column=2, sticky='W')
+        self.rb_no_comments.grid(row=0, column=3, sticky='W')
+        self.lbl_valid.grid(row=1, column=0, sticky='W')
+        self.rb_any_valid.grid(row=1, column=1, sticky='W')
+        self.rb_invalid.grid(row=1, column=2, sticky='W')
+        self.rb_valid.grid(row=1, column=3, sticky='W')
+
+        # --- Configure rows and columns to resize ---
+        self.rowconfigure(3, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.config_sheet()
+        pad_frame(self.frm_radiobuttons)
+        self.selected_comments.set(ANY)
+        self.selected_valid.set(ANY)
+
+
+    def config_sheet(self):
+        """Configure the sheet that displays previous imports"""
+        # only certain columns will be editable
+        self.sheet.readonly_columns([VALID_COL, IMPORT_NAME_COL, IMPORT_TIME_COL, DELETE_COL])
+
+        self.sheet.enable_bindings(
+            ("single_select", "drag_select", "select_all", "column_select",
+             "row_select", "column_width_resize", "double_click_column_resize",
+             "arrowkeys", "right_click_popup_menu", "sort_rows", "copy", "cut",
+             "paste", "delete", "undo",
+             "edit_cell", # only certain columns will be editable
+             "find", "replace", "ctrl_click_select"
+             )
+        )
+        # TODO delete functionality
+        # self.sheet.extra_bindings("cell_select", self.on_cell_select)
+        # Update sheet by spoofing combobox select event
+        self.combobox.set(self.combobox.get())
+        self.combobox.event_generate("<<ComboboxSelected>>")
+
+    def update_sheet(self, event:Event):
+        self._update_sheet()
+
+    def update_sheet_from_combobox(self, event:Event):
+        """
+        In addition to updating the sheet to the selected exercise, the combobox
+        also resets the date entries.
+        :param event:
+        :return:
+        """
+        self.date_entry_start.set_date(get_first_date(exercise=self.combobox.get()))
+        self.date_entry_end.set_date(datetime.date.today())
+        self._update_sheet()
+
+    def _update_sheet(self):
+        """Update sheet to match the current filters."""
+        exercise = self.combobox.get()
+        start_date = self.date_entry_start.get_date()
+        end_date = self.date_entry_end.get_date()
+        comments = self.selected_comments.get()
+        valid = self.selected_valid.get()
+
+        # Update data in the sheet.
+        self.sheet.clear()
+        self.sheet.set_data(data=self._get_sheet_data(exercise, start_date, end_date, comments, valid))
+
+        # Restyle the sheet.
+        self._style_sheet()
+
+    def _get_sheet_data(self, exercise=ALL, start_date=None, end_date=None, comments=ANY, valid=ANY):
+        """
+        Return list that is used to populate the sheet.
+
+        This function ALSO double dips, and updates the notes for each cell!!
+        :return: [[daily_sets1], [daily_sets2], ...]
+        """
+        sheet_data = []
+        items = get_daily_sets(exercise=exercise, start_date=start_date, end_date=end_date, comments=comments, valid=valid)
+        for i in range(len(items)):
+            sets_rowid, sets_date, sets_exercise, sets_string, comments, is_valid, imprt_name, imprt_date_time = items[i]
+            sheet_data.append([sets_date, sets_exercise, sets_string, comments, is_valid, imprt_name, imprt_date_time, 'Delete'])
+            # Update notes: store rowid in the date column
+            self.sheet.note(i, DATE_COL, note=sets_rowid)
+        return sheet_data
+
+    def _style_sheet(self):
+        self.sheet.set_all_cell_sizes_to_text()  # Resize cells
+        # Color the 'Delete' column red
+        self.sheet.highlight_cells(row="all",
+                                   column=DELETE_COL,
+                                   bg="red",
+                                   fg="white",
+                                   overwrite=True)
+
+    # def _convert_date(self, date_str:str):
+    #     """Convert M/D/YY to YYYY-MM-DD"""
+    #     m, d, y = [int(p) for p in date_str.split('/')]
+    #     dt = datetime.date(year=y, month=m, day=d)
+    #     return dt.strftime('%Y-%m-%d')
