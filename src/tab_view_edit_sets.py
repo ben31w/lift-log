@@ -154,7 +154,6 @@ class TabViewEditSets(ttk.Frame):
         self.selected_comments.set(ANY)
         self.selected_valid.set(ANY)
 
-
     def config_sheet(self):
         """Configure the sheet that displays previous imports"""
         # only certain columns will be editable
@@ -198,7 +197,8 @@ class TabViewEditSets(ttk.Frame):
         valid = self.selected_valid.get()
 
         # Update data in the sheet.
-        self.sheet.clear()
+        total_rows = self.sheet.get_total_rows()
+        self.sheet.delete_rows(iter(range(total_rows)))
         self.sheet.set_data(data=self._get_sheet_data(exercise, start_date, end_date, comments, valid))
 
         # Restyle the sheet.
@@ -228,9 +228,3 @@ class TabViewEditSets(ttk.Frame):
                                    bg="red",
                                    fg="white",
                                    overwrite=True)
-
-    # def _convert_date(self, date_str:str):
-    #     """Convert M/D/YY to YYYY-MM-DD"""
-    #     m, d, y = [int(p) for p in date_str.split('/')]
-    #     dt = datetime.date(year=y, month=m, day=d)
-    #     return dt.strftime('%Y-%m-%d')
