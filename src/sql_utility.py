@@ -705,6 +705,25 @@ def update_daily_sets_to_alias():
         import_sets_via_html(html_filepath=file_to_write, existing_import_id=imprt_id)
 
 
+def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, int]]):
+    """
+    Given a tksheet (the sheet that displays all daily_sets items) and list of
+    rowids, find the edited rows, get their content, and update them in SQLite.
+    """
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    cur.executemany(f"""
+        UPDATE daily_sets
+        SET date = ?, exercise = ?, sets_string = ?, comments = ?
+        WHERE rowid = ?
+    """, edited_rows)
+
+    con.commit()
+    cur.close()
+    con.close()
+
+
 def decompress_and_write_html(import_id: int) -> str:
     """
     Given an import rowid, decompress the file associated with the import,

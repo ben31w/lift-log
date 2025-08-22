@@ -9,7 +9,7 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 from tksheet import Sheet
 
-from sql_utility import get_daily_sets, get_first_date
+from sql_utility import get_daily_sets, get_first_date, update_user_edited_daily_sets
 from src.common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
 from src.tab_progress_plots import TabProgressPlots
 
@@ -43,17 +43,19 @@ class TabViewEditSets(ttk.Frame):
         """
         super().__init__(parent)
 
+        # -- Important attributes --
         self.tab_progress_plots = tab_progress_plots
-
-        # Here, we configure padding for this frame, which determines the spacing
-        # between all widgets that are direct children of this frame.
-        self.configure(padding=(3,3,3,3))
+        # Track edits that have been made by the user. When the user is done
+        # editing a cell, track the rowid, date, exercise, sets string, and
+        # comments in a list. Then update SQLite data to match the list
+        # when the user clicks SAVE.
+        self.edited_daily_sets = []
 
         # --- Define widgets ---
         # self-level
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
-        self.btn_save = ttk.Button(self, text="SAVE NONFUNCTIONAL")
+        self.btn_save = ttk.Button(self, text="SAVE CHANGES", command=self.save_tracked_edits)
         self.sheet = Sheet(self,
                            theme="light green",
                            height=980,
@@ -149,10 +151,14 @@ class TabViewEditSets(ttk.Frame):
         self.rowconfigure(3, weight=1)
         self.columnconfigure(0, weight=1)
 
+        # Important set up
         self.config_sheet()
         pad_frame(self.frm_radiobuttons)
         self.selected_comments.set(ANY)
         self.selected_valid.set(ANY)
+        # Here, we configure padding for this frame, which determines the spacing
+        # between this widget and its parent
+        self.configure(padding=(3, 3, 3, 3))
 
     def config_sheet(self):
         """Configure the sheet that displays previous imports"""
@@ -168,7 +174,8 @@ class TabViewEditSets(ttk.Frame):
              "find", "replace", "ctrl_click_select"
              )
         )
-        # TODO delete functionality
+        self.sheet.extra_bindings("end_edit_cell", self.track_edit)
+        # TODO implement delete functionality
         # self.sheet.extra_bindings("cell_select", self.on_cell_select)
         # Update sheet by spoofing combobox select event
         self.combobox.set(self.combobox.get())
@@ -228,3 +235,25 @@ class TabViewEditSets(ttk.Frame):
                                    bg="red",
                                    fg="white",
                                    overwrite=True)
+
+    def track_edit(self, event):
+        """
+        Called when a cell is done being edited.
+        Track the change, so it can be saved later.
+        """
+        content = event["selected"]
+
+        new_date = self.sheet.get_cell_data(content.row, DATE_COL)
+        new_exercise = self.sheet.get_cell_data(content.row, EXERCISE_COL)
+        new_sets_string = self.sheet.get_cell_data(content.row, SETS_STRING_COL)
+        new_comments = self.sheet.get_cell_data(content.row, COMMENTS_COL)
+        rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
+        t = (new_date, new_exercise, new_sets_string, new_comments, rowid)
+
+        self.edited_daily_sets.append(t)
+
+    def save_tracked_edits(self):
+        """Save cells that have been edited in SQLite."""
+        # Update all items that have a tracked edit
+        update_user_edited_daily_sets(self.edited_daily_sets)
+
