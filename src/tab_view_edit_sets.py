@@ -61,7 +61,7 @@ class TabViewEditSets(ttk.Frame):
         # self-level
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
-        self.btn_save = ttk.Button(self, text="SAVE CHANGES", command=self.save_changes)
+        self.btn_save = ttk.Button(self, text="SAVE CHANGES", state=DISABLED, command=self.save_changes)
         # TODO the sheet doesn't update when an import is added or deleted.
         self.sheet = Sheet(self,
                            theme="light green",
@@ -271,6 +271,8 @@ class TabViewEditSets(ttk.Frame):
 
         self.edited_daily_sets.append(t)
 
+        self.update_btn_save()
+
     def save_changes(self):
         """Update edited and deleted rows in SQLite."""
         # Update all items that have a tracked edit
@@ -279,7 +281,12 @@ class TabViewEditSets(ttk.Frame):
         # Delete all items that have been staged for deletion
         delete_daily_sets(self.deleted_daily_sets)
 
+        # Clear the lists that are tracking changes
+        self.edited_daily_sets.clear()
+        self.deleted_daily_sets.clear()
+
         self._update_sheet()
+        self.update_btn_save()
 
     def on_cell_select(self, event):
         """
@@ -297,5 +304,16 @@ class TabViewEditSets(ttk.Frame):
             else:
                 self.deleted_daily_sets.append((rowid,))
             self._style_sheet()
+            self.update_btn_save()
+
+    def update_btn_save(self):
+        """
+        Check if there are staged changes (edits or deletions).
+        If so, enable the save button. Otherwise, disable it.
+        """
+        if len(self.edited_daily_sets) > 0 or len(self.deleted_daily_sets) > 0:
+            self.btn_save.configure(state=NORMAL)
+        else:
+            self.btn_save.configure(state=DISABLED)
 
 
