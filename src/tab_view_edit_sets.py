@@ -62,6 +62,7 @@ class TabViewEditSets(ttk.Frame):
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.btn_save = ttk.Button(self, text="SAVE CHANGES", command=self.save_changes)
+        # TODO the sheet doesn't update when an import is added or deleted.
         self.sheet = Sheet(self,
                            theme="light green",
                            height=980,
@@ -235,12 +236,7 @@ class TabViewEditSets(ttk.Frame):
     def _style_sheet(self):
         self.sheet.set_all_cell_sizes_to_text()  # Resize cells
 
-        # Color the 'Delete' column red
-        self.sheet.highlight_cells(row="all",
-                                   column=DELETE_COL,
-                                   bg="red",
-                                   fg="white",
-                                   overwrite=True)
+        self.sheet.dehighlight_all()
 
         # For any row the user has staged for deletion, color the text red.
         for r in range(self.sheet.get_total_rows()):
@@ -251,6 +247,13 @@ class TabViewEditSets(ttk.Frame):
                                            bg="white",
                                            fg="red",
                                            overwrite=True)
+
+        # Color the 'Delete' column red
+        self.sheet.highlight_cells(row="all",
+                                   column=DELETE_COL,
+                                   bg="red",
+                                   fg="white",
+                                   overwrite=True)
 
     def track_edit(self, event):
         """
@@ -284,12 +287,15 @@ class TabViewEditSets(ttk.Frame):
         and start tracking rows that the user wants to delete.
         """
         content = event["selected"]
-        rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
 
-        # When a cell in DELETE COL is selected, confirm the user wants to delete
-        # the selected import.
+        # When a cell in DELETE COL is selected, add or remove it from the
+        #  tracking list.
         if content.column == DELETE_COL:
-            self.deleted_daily_sets.append((rowid,))
+            rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
+            if (rowid,) in self.deleted_daily_sets:
+                self.deleted_daily_sets.remove((rowid,))
+            else:
+                self.deleted_daily_sets.append((rowid,))
             self._style_sheet()
 
 
