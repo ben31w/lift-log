@@ -66,9 +66,8 @@ class TabImportSets(ttk.Frame):
         main_frame = VerticalScrolledFrame(self, starting_height=starting_height)
         self.content_frame = main_frame.interior
 
-        # Configure a very small padding between widgets on the content frame.
-        # More padding can be added for specific widgets where we want to
-        # delimit the sections better.
+        # Here, we configure padding for this frame, which determines the spacing
+        # between this widget and its parent
         # tuple is (padx_left, padx_right, pady_top, pady_bottom)
         self.content_frame.configure(padding=(3, 3, 3, 3))
 

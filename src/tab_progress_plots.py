@@ -76,7 +76,7 @@ class TabProgressPlots(ttk.Frame):
         super().__init__(parent)
 
         # Here, we configure padding for this frame, which determines the spacing
-        # between all widgets that are direct children of this frame.
+        # between this widget and its parent
         self.configure(padding=(3,3,3,3))
 
         # --- Define widgets ---

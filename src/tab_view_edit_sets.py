@@ -9,9 +9,10 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 from tksheet import Sheet
 
-from sql_utility import get_daily_sets, get_first_date, update_user_edited_daily_sets
-from src.common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
-from src.tab_progress_plots import TabProgressPlots
+from sql_utility import (get_daily_sets, get_first_date,
+                         update_user_edited_daily_sets, delete_daily_sets)
+from common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
+from tab_progress_plots import TabProgressPlots
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +46,22 @@ class TabViewEditSets(ttk.Frame):
 
         # -- Important attributes --
         self.tab_progress_plots = tab_progress_plots
-        # Track edits that have been made by the user. When the user is done
-        # editing a cell, track the rowid, date, exercise, sets string, and
-        # comments in a list. Then update SQLite data to match the list
-        # when the user clicks SAVE.
+        # When the user is done editing a cell, track the following fields:
+        # (rowid, date, exercise, sets_string, comments)
+        # and add them to this list. When the  user clicks SAVE, update the
+        # SQLite data to match this list.
         self.edited_daily_sets = []
+        # When the user deletes a daily sets items, track the following fields:
+        # (rowid, ) [storing as tuple makes it easier to executemany in SQLite3]
+        # and add them to this list. When the user clicks SAVE, delete
+        # everything we tracked from SQLite.
+        self.deleted_daily_sets = []
 
         # --- Define widgets ---
         # self-level
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
-        self.btn_save = ttk.Button(self, text="SAVE CHANGES", command=self.save_tracked_edits)
+        self.btn_save = ttk.Button(self, text="SAVE CHANGES", command=self.save_changes)
         self.sheet = Sheet(self,
                            theme="light green",
                            height=980,
@@ -161,7 +167,7 @@ class TabViewEditSets(ttk.Frame):
         self.configure(padding=(3, 3, 3, 3))
 
     def config_sheet(self):
-        """Configure the sheet that displays previous imports"""
+        """Configure the sheet."""
         # only certain columns will be editable
         self.sheet.readonly_columns([VALID_COL, IMPORT_NAME_COL, IMPORT_TIME_COL, DELETE_COL])
 
@@ -170,13 +176,12 @@ class TabViewEditSets(ttk.Frame):
              "row_select", "column_width_resize", "double_click_column_resize",
              "arrowkeys", "right_click_popup_menu", "sort_rows", "copy", "cut",
              "paste", "delete", "undo",
-             "edit_cell", # only certain columns will be editable
+             "edit_cell", # only certain columns are editable b/c of readonly_columns
              "find", "replace", "ctrl_click_select"
              )
         )
         self.sheet.extra_bindings("end_edit_cell", self.track_edit)
-        # TODO implement delete functionality
-        # self.sheet.extra_bindings("cell_select", self.on_cell_select)
+        self.sheet.extra_bindings("cell_select", self.on_cell_select)
         # Update sheet by spoofing combobox select event
         self.combobox.set(self.combobox.get())
         self.combobox.event_generate("<<ComboboxSelected>>")
@@ -229,12 +234,23 @@ class TabViewEditSets(ttk.Frame):
 
     def _style_sheet(self):
         self.sheet.set_all_cell_sizes_to_text()  # Resize cells
+
         # Color the 'Delete' column red
         self.sheet.highlight_cells(row="all",
                                    column=DELETE_COL,
                                    bg="red",
                                    fg="white",
                                    overwrite=True)
+
+        # For any row the user has staged for deletion, color the text red.
+        for r in range(self.sheet.get_total_rows()):
+            rowid = self.sheet.props(r, DATE_COL, "note")['note']
+            if (rowid,) in self.deleted_daily_sets:
+                self.sheet.highlight_cells(row=r,
+                                           column="all",
+                                           bg="white",
+                                           fg="red",
+                                           overwrite=True)
 
     def track_edit(self, event):
         """
@@ -252,8 +268,28 @@ class TabViewEditSets(ttk.Frame):
 
         self.edited_daily_sets.append(t)
 
-    def save_tracked_edits(self):
-        """Save cells that have been edited in SQLite."""
+    def save_changes(self):
+        """Update edited and deleted rows in SQLite."""
         # Update all items that have a tracked edit
         update_user_edited_daily_sets(self.edited_daily_sets)
+
+        # Delete all items that have been staged for deletion
+        delete_daily_sets(self.deleted_daily_sets)
+
+        self._update_sheet()
+
+    def on_cell_select(self, event):
+        """
+        Called when a cell is selected. Check if the cell is a DELETE button,
+        and start tracking rows that the user wants to delete.
+        """
+        content = event["selected"]
+        rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
+
+        # When a cell in DELETE COL is selected, confirm the user wants to delete
+        # the selected import.
+        if content.column == DELETE_COL:
+            self.deleted_daily_sets.append((rowid,))
+            self._style_sheet()
+
 

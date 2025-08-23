@@ -724,6 +724,20 @@ def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, int
     con.close()
 
 
+def delete_daily_sets(rowids_to_delete:list[tuple[int]]):
+    """Delete the given rowids from daily_sets table."""
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    cur.executemany(f"""
+            DELETE FROM daily_sets
+            WHERE rowid = ?
+        """, rowids_to_delete)
+
+    con.commit()
+    cur.close()
+    con.close()
+
 def decompress_and_write_html(import_id: int) -> str:
     """
     Given an import rowid, decompress the file associated with the import,
