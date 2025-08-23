@@ -181,9 +181,9 @@ class TabViewEditSets(ttk.Frame):
              "find", "replace", "ctrl_click_select"
              )
         )
-        # self.sheet.extra_bindings("delete", self.track_edit)
-        # self.sheet.extra_bindings("end_ctrl_x", self.track_edit)
-        # self.sheet.extra_bindings("end_ctrl_v", self.track_edit)
+        self.sheet.extra_bindings("delete", self.track_edit)
+        self.sheet.extra_bindings("end_ctrl_x", self.track_edit)
+        self.sheet.extra_bindings("end_ctrl_v", self.track_edit)
         self.sheet.extra_bindings("end_edit_cell", self.track_edit)
         self.sheet.extra_bindings("cell_select", self.on_cell_select)
         # Update sheet by spoofing combobox select event
@@ -269,8 +269,8 @@ class TabViewEditSets(ttk.Frame):
 
     def track_edit(self, event):
         """
-        Called when a cell is done being edited.
-        Track the change, so it can be saved later.
+        Called when a cell is done being edited, or a cut, paste, or deletion
+        is performed. Track the change, so it can be saved later.
         """
         content = event["selected"]
 
@@ -309,13 +309,20 @@ class TabViewEditSets(ttk.Frame):
 
         # When a cell in DELETE COL is selected, add or remove it from the
         #  tracking list.
-        if content.column == DELETE_COL:
-            rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
-            if (rowid,) in self.deleted_daily_sets:
-                self.deleted_daily_sets.remove((rowid,))
-            else:
-                self.deleted_daily_sets.append((rowid,))
-            self.update_controls_and_display()
+        try:
+            if content.column == DELETE_COL:
+                rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
+                if (rowid,) in self.deleted_daily_sets:
+                    self.deleted_daily_sets.remove((rowid,))
+                else:
+                    self.deleted_daily_sets.append((rowid,))
+                self.update_controls_and_display()
+        except AttributeError:
+            # This function appears to get called after a paste operation, but
+            #  the content is different/doesn't have a column. The only purpose
+            #  of this function is to handle the delete button. We can ignore
+            #  errors like these.
+            pass
 
     def update_btn_save(self):
         """
