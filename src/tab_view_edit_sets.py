@@ -61,7 +61,7 @@ class TabViewEditSets(ttk.Frame):
         # self-level
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
-        self.btn_save = ttk.Button(self, text="SAVE CHANGES", state=DISABLED, command=self.save_changes)
+        self.frm_btns = ttk.Frame(self, padding=(12, 12, 3, 3))
         # TODO the sheet doesn't update when an import is added or deleted.
         self.sheet = Sheet(self,
                            theme="light green",
@@ -130,11 +130,14 @@ class TabViewEditSets(ttk.Frame):
                                         variable=self.selected_valid,
                                         command=self._update_sheet)
 
+        self.btn_save = ttk.Button(self.frm_btns, text="SAVE CHANGES", state=DISABLED, command=self.save_changes)
+        self.btn_restore = ttk.Button(self.frm_btns, text="RESTORE CHANGES", state=DISABLED, command=self.restore_changes)
+
         # --- Grid widgets ---
         # self-level
         self.frm_entries.grid(row=0, column=0, sticky='W')
         self.frm_radiobuttons.grid(row=1, column=0, sticky='W')
-        self.btn_save.grid(row=2, column=0, sticky='W')
+        self.frm_btns.grid(row=2, column=0, sticky='W')
         self.sheet.grid(row=3, column=0, sticky='NSEW')
 
         # sub-self-level
@@ -153,6 +156,9 @@ class TabViewEditSets(ttk.Frame):
         self.rb_any_valid.grid(row=1, column=1, sticky='W')
         self.rb_invalid.grid(row=1, column=2, sticky='W')
         self.rb_valid.grid(row=1, column=3, sticky='W')
+
+        self.btn_save.grid(row=0, column=0, sticky='W')
+        self.btn_restore.grid(row=0, column=1, sticky='W')
 
         # --- Configure rows and columns to resize ---
         self.rowconfigure(3, weight=1)
@@ -300,6 +306,13 @@ class TabViewEditSets(ttk.Frame):
 
         self.update_controls_and_display()
 
+    def restore_changes(self):
+        """Restore changes that have been staged."""
+        self.edited_daily_sets.clear()
+        self.deleted_daily_sets.clear()
+        self._update_sheet()
+        self.update_controls_and_display()
+
     def on_cell_select(self, event):
         """
         Called when a cell is selected. Check if the cell is a DELETE button,
@@ -324,19 +337,21 @@ class TabViewEditSets(ttk.Frame):
             #  errors like these.
             pass
 
-    def update_btn_save(self):
+    def update_btns(self):
         """
         Check if there are staged changes (edits or deletions).
-        If so, enable the save button. Otherwise, disable it.
+        If so, enable the save and restore buttons. Otherwise, disable them.
         """
         if len(self.edited_daily_sets) > 0 or len(self.deleted_daily_sets) > 0:
             self.btn_save.configure(state=NORMAL)
+            self.btn_restore.configure(state=NORMAL)
         else:
             self.btn_save.configure(state=DISABLED)
+            self.btn_restore.configure(state=DISABLED)
 
     def update_controls_and_display(self):
-        """Update controls (save button) and display (sheet styling)"""
+        """Update controls (save and restore button) and display (sheet styling)"""
         self._style_sheet()
-        self.update_btn_save()
+        self.update_btns()
 
 
