@@ -47,7 +47,7 @@ class TabViewEditSets(ttk.Frame):
         # -- Important attributes --
         self.tab_progress_plots = tab_progress_plots
         # When the user is done editing a cell, track the following fields:
-        # (rowid, date, exercise, sets_string, comments)
+        # (date, exercise, sets_string, comments, rowid)
         # and add them to this list. When the  user clicks SAVE, update the
         # SQLite data to match this list.
         self.edited_daily_sets = []
@@ -181,6 +181,9 @@ class TabViewEditSets(ttk.Frame):
              "find", "replace", "ctrl_click_select"
              )
         )
+        # self.sheet.extra_bindings("delete", self.track_edit)
+        # self.sheet.extra_bindings("end_ctrl_x", self.track_edit)
+        # self.sheet.extra_bindings("end_ctrl_v", self.track_edit)
         self.sheet.extra_bindings("end_edit_cell", self.track_edit)
         self.sheet.extra_bindings("cell_select", self.on_cell_select)
         # Update sheet by spoofing combobox select event
@@ -239,6 +242,9 @@ class TabViewEditSets(ttk.Frame):
         self.sheet.dehighlight_all()
 
         # For any row the user has staged for deletion, color the text red.
+        # For any row where the user has staged an edit, color the text green.
+        edited_rowids = [tup[4] for tup in self.edited_daily_sets]
+        logger.info(f"edited rowids: {edited_rowids}")
         for r in range(self.sheet.get_total_rows()):
             rowid = self.sheet.props(r, DATE_COL, "note")['note']
             if (rowid,) in self.deleted_daily_sets:
@@ -246,6 +252,12 @@ class TabViewEditSets(ttk.Frame):
                                            column="all",
                                            bg="white",
                                            fg="red",
+                                           overwrite=True)
+            elif rowid in edited_rowids:
+                self.sheet.highlight_cells(row=r,
+                                           column="all",
+                                           bg="white",
+                                           fg="green",
                                            overwrite=True)
 
         # Color the 'Delete' column red
@@ -269,9 +281,10 @@ class TabViewEditSets(ttk.Frame):
         rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
         t = (new_date, new_exercise, new_sets_string, new_comments, rowid)
 
+        # TODO it would be nice if we only track changes when content has truly changed.
         self.edited_daily_sets.append(t)
 
-        self.update_btn_save()
+        self.update_controls_and_display()
 
     def save_changes(self):
         """Update edited and deleted rows in SQLite."""
@@ -285,8 +298,7 @@ class TabViewEditSets(ttk.Frame):
         self.edited_daily_sets.clear()
         self.deleted_daily_sets.clear()
 
-        self._update_sheet()
-        self.update_btn_save()
+        self.update_controls_and_display()
 
     def on_cell_select(self, event):
         """
@@ -303,8 +315,7 @@ class TabViewEditSets(ttk.Frame):
                 self.deleted_daily_sets.remove((rowid,))
             else:
                 self.deleted_daily_sets.append((rowid,))
-            self._style_sheet()
-            self.update_btn_save()
+            self.update_controls_and_display()
 
     def update_btn_save(self):
         """
@@ -315,5 +326,10 @@ class TabViewEditSets(ttk.Frame):
             self.btn_save.configure(state=NORMAL)
         else:
             self.btn_save.configure(state=DISABLED)
+
+    def update_controls_and_display(self):
+        """Update controls (save button) and display (sheet styling)"""
+        self._style_sheet()
+        self.update_btn_save()
 
 
