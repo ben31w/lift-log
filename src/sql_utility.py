@@ -734,17 +734,28 @@ def update_daily_sets_to_alias():
 
 def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, int]]):
     """
-    Given a tksheet (the sheet that displays all daily_sets items) and list of
-    rowids, find the edited rows, get their content, and update them in SQLite.
+    Given list of edits to make in SQLite, edit and validate them.
+    edit tuple format:
+    (date, exercise, sets_string, comments, rowid)
     """
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
 
+    # Validation: add this as an extra item to every tuple in edited_rows
+    # TODO Issue #18 we are only validating sets_string. What about date and exercise?
+    edited_rows_validated = []
+    for edit in edited_rows:
+        date, exercise, sets_string, comments, rowid = edit
+        logger.info(f"Validating {sets_string}... {_is_sets_string_valid(sets_string)}")
+        new_t = (date, exercise, sets_string, comments, _is_sets_string_valid(sets_string), rowid)
+        edited_rows_validated.append(new_t)
+
+    # Update in SQLite
     cur.executemany(f"""
         UPDATE daily_sets
-        SET date = ?, exercise = ?, sets_string = ?, comments = ?
-        WHERE rowid = ?
-    """, edited_rows)
+        SET date = ?, exercise = ?, sets_string = ?, comments = ?, is_valid = ?
+        WHERE ROWID = ?
+    """, edited_rows_validated)
 
     con.commit()
     cur.close()

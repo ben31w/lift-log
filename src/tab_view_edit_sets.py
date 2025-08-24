@@ -305,6 +305,7 @@ class TabViewEditSets(ttk.Frame):
         self.edited_daily_sets.clear()
         self.deleted_daily_sets.clear()
 
+        self._update_sheet()
         self.update_controls_and_display()
 
     def restore_changes(self):
@@ -351,7 +352,10 @@ class TabViewEditSets(ttk.Frame):
             self.btn_restore.configure(state=DISABLED)
 
     def update_controls_and_display(self):
-        """Update controls (save and restore button) and display (sheet styling)"""
+        """
+        Update controls (save and restore button) and display (sheet styling:
+        this does not update the sheet data itself).
+        """
         self._style_sheet()
         self.update_btns()
 
