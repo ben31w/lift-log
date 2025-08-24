@@ -11,7 +11,7 @@ from typing import Dict
 
 from common import (hash_html, compress_html, decompress_html,
                     print_to_text_widget, ALL, ANY, VALID, HAS_COMMENTS,
-                    NO_COMMENTS, INVALID)
+                    NO_COMMENTS, INVALID, HTML)
 from exercise_set import ExerciseSet
 
 logger = logging.getLogger(__name__)
@@ -40,13 +40,41 @@ def create_tables():
     """
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
+
+    # import
+    # When the user imports exercise sets, the instance is recorded in this table.
+    #
+    # Fields
+    # - date_time of the import, stored in SQLite as TEXT (YYYY-MM-DD HH:MM:SS).
+    # - file_hash is the content of the HTML file hashed. It's used for quick
+    #   comparisons to avoid duplicate imports.
+    # - compressed_file_content is the content of the HTML compressed. It can be
+    #   easily decompressed when the user wants to view the file content.
+    # - name, ex: "some_file.html, YYYY-MM-DD to YYYY-MM-DD",
+    #             "apple notes, YYYY-MM-DD to YYYY-MM-DD"
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS import(
+                date_time TEXT,
+                file_hash TEXT,
+                compressed_file_content BLOB,
+                name TEXT
+            )
+        """)
+
     # daily_sets
     # This represents all the sets a user has logged for a particular exercise on a particular date.
     # Ex: all bench press sets logged on 21 June 2025.
     #     -> ('bb bench', '2025-06-21', '2x8@135, 2x6@145', 1)
-    # date is stored in SQLite as TEXT (YYYY-MM-DD).
-    # is_valid is a boolean (0/1), but SQLite stores booleans as INTEGER
-    # TODO comments and is_valid aren't being set or used yet
+    #
+    # fields
+    # - exercise
+    # - date: stored in SQLite as TEXT (YYYY-MM-DD).
+    # - sets_string: parsed and sanitized from the raw line
+    # - comments: optional
+    # - is_valid: boolean (0/1), but SQLite stores booleans as INTEGER
+    # - line: the raw line in the file where this daily_sets item was detected
+    # - import_id: daily_sets items are added through importing, so they store a
+    #   reference to an import item
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_sets(
             exercise TEXT,
@@ -54,22 +82,9 @@ def create_tables():
             sets_string TEXT,
             comments TEXT,
             is_valid INTEGER,
-            import_id INTEGER
-        )
-    """)
-    # import
-    # When the user imports exercise sets, the instance is recorded in this table.
-    # file_hash is the content of the HTML file hashed. It's used for quick
-    #   comparisons to avoid duplicate imports.
-    # compressed_file_content is the content of the HTML compressed. It can be
-    #   easily decompressed when the user wants to view the file content.
-    # date_time is stored in SQLite as TEXT (YYYY-MM-DD HH:MM:SS).
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS import(
-            date_time TEXT,
-            file_hash TEXT,
-            compressed_file_content BLOB,
-            name TEXT
+            line TEXT,
+            import_id INTEGER,
+            FOREIGN KEY(import_id) REFERENCES import(ROWID)
         )
     """)
 
@@ -91,6 +106,10 @@ def get_first_date(exercise=None):
     else:
         result = cur.execute(f"SELECT min(date) FROM daily_sets where exercise = '{exercise}'")
     date_str = result.fetchone()[0]
+
+    if date_str is None:
+        return datetime.date.today()
+
     y, m, d = [int(p) for p in date_str.split('-')]
     dt = datetime.date(year=y, month=m, day=d)
 
@@ -514,7 +533,7 @@ def import_sets_via_html(html_filepath:str,
                          existing_import_id:int=None,
                          text_widget:Text=None,
                          clear_text_widget:bool=True,
-                         method:str='HTML'):
+                         method:str=HTML):
     """
     This function reads an HTML file and inserts data into SQLite.
 
@@ -522,7 +541,7 @@ def import_sets_via_html(html_filepath:str,
     the HTML is formatted so that headings, paragraphs, list items, etc. are on their own line.
     not allowed: '<h1>My Workouts</h1><h2>8/6/2025</h2>'
 
-    :param html_filepath: HTML file to read
+    :param html_filepath: HTML file to read, absolute path string
     :param existing_import_id: if not provided, an import record will be generated, and
         the sets will have an import ID that matches the new import.
         If provided, an import record will not be generated, and the sets will
@@ -600,6 +619,8 @@ def import_sets_via_html(html_filepath:str,
                     except ValueError:
                         _log_import_msg(f"Error parsing this line. {line_num}: '{line}'", text_widget, ERROR)
 
+                    # Don't bother storing empty sets strings in SQLite.
+                    # But store invalid sets strings because the user can correct them later.
                     if sets_str == "":
                         _log_import_msg(f"Skipping. No sets were found on line {line_num}: '{line}'", text_widget, WARNING)
                     else:
@@ -607,7 +628,7 @@ def import_sets_via_html(html_filepath:str,
                         if not is_valid:
                             _log_import_msg(f"Invalid sets string found on line {line_num}: '{line}'  |  sets_str: {sets_str}", text_widget, WARNING)
 
-                        daily_sets_item = (exercise, curr_date, sets_str, is_valid, comments)
+                        daily_sets_item = (exercise, curr_date, sets_str, is_valid, comments, line)
                         _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget, DEBUG)
                         daily_sets_list.append(daily_sets_item)
 
@@ -620,17 +641,22 @@ def import_sets_via_html(html_filepath:str,
 
         # Insert records into 'daily_sets' table
         import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, import_id) VALUES (?, ?, ?, ?, ?, {import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, line, import_id) VALUES (?, ?, ?, ?, ?, ?, {import_id})", daily_sets_list)
 
         # Now, update the 'name' field of our new 'import' record.
         min_date = cur.execute(f"SELECT MIN(date) FROM daily_sets WHERE import_id = {import_id}").fetchone()[0]
         max_date = cur.execute(f"SELECT MAX(date) FROM daily_sets WHERE import_id = {import_id}").fetchone()[0]
-        name = f"{method}, {min_date} to {max_date}"
+
+        if method == HTML:
+            html_filename = html_filepath[html_filepath.rindex(os.sep) + 1:]
+            name = f"{html_filename}, {min_date} to {max_date}"
+        else:
+            name = f"{method}, {min_date} to {max_date}"
         cur.execute(f"UPDATE import SET name = '{name}' WHERE ROWID = {import_id}")
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, import_id) VALUES (?, ?, ?, ?, ?, {existing_import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, line, import_id) VALUES (?, ?, ?, ?, ?, ?, {existing_import_id})", daily_sets_list)
 
     _log_import_msg("Done importing.", text_widget)
     if text_widget is not None:

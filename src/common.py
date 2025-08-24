@@ -8,9 +8,11 @@ import zlib
 
 ALL = 'all'
 ANY = "Any"
+APPLE_NOTES = "Apple Notes"
 HAS_COMMENTS = "Has comments"
-NO_COMMENTS = "No comments"
+HTML = "HTML"
 INVALID = "Invalid"
+NO_COMMENTS = "No comments"
 VALID = "Valid"
 
 def pad_frame(frame: ttk.Frame):

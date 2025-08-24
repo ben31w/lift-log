@@ -19,7 +19,7 @@ import webbrowser
 from tkcalendar import DateEntry
 from tksheet import Sheet
 
-from common import hash_html, pad_frame
+from common import hash_html, pad_frame, APPLE_NOTES
 from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
     get_imports, import_sets_via_html, _log_import_msg, exercise_sets_already_exist
 from sql_utility import logger as sql_logger
@@ -479,7 +479,7 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
             import_sets_via_html(f"{self.script_directory}/../usr/my_apple_workouts.html",
                                  text_widget=self.tab_import_sets.status_msg_area,
                                  clear_text_widget=False,
-                                 method='Apple Notes')
+                                 method=APPLE_NOTES)
             self.tab_progress_plots.update_exercises()
             self.tab_import_sets.update_sheet()
 
