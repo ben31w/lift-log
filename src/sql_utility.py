@@ -150,7 +150,8 @@ def get_daily_sets(exercise:str=ALL, start_date:datetime.date=None,
         where_str = "WHERE " + " AND ".join(where_conditions)
 
     result = cur.execute(f"""
-        SELECT daily_sets.ROWID, daily_sets.date, daily_sets.exercise, daily_sets.sets_string, daily_sets.comments, daily_sets.is_valid, import.name, import.date_time 
+        SELECT daily_sets.ROWID, daily_sets.date, daily_sets.exercise, daily_sets.sets_string, 
+               daily_sets.comments, daily_sets.is_valid, daily_sets.line, import.name, import.date_time 
         FROM daily_sets 
         FULL OUTER JOIN import ON daily_sets.import_id = import.ROWID
         {where_str}

@@ -22,9 +22,10 @@ EXERCISE_COL = 1
 SETS_STRING_COL = 2
 COMMENTS_COL = 3
 VALID_COL = 4
-IMPORT_NAME_COL = 5
-IMPORT_TIME_COL = 6
-DELETE_COL = 7
+LINE_COL = 5
+IMPORT_NAME_COL = 6
+IMPORT_TIME_COL = 7
+DELETE_COL = 8
 
 class TabViewEditSets(ttk.Frame):
     """
@@ -62,13 +63,13 @@ class TabViewEditSets(ttk.Frame):
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_btns = ttk.Frame(self, padding=(12, 12, 3, 3))
-        # TODO the sheet doesn't update when an import is added or deleted.
+        # TODO Issue #13 the sheet doesn't update when an import is added or deleted.
         self.sheet = Sheet(self,
                            theme="light green",
                            height=980,
                            width=1680,
                            headers=["Date", "Exercise", "Sets", "Comments",
-                                    "Valid*", "Import*", "Import Time*", "Delete*"])
+                                    "Valid*", "Line*", "Import*", "Import Time*", "Delete*"])
 
         # sub-self-level
         self.lbl_exercise = ttk.Label(self.frm_entries, text="Exercise")
@@ -176,7 +177,7 @@ class TabViewEditSets(ttk.Frame):
     def config_sheet(self):
         """Configure the sheet."""
         # only certain columns will be editable
-        self.sheet.readonly_columns([VALID_COL, IMPORT_NAME_COL, IMPORT_TIME_COL, DELETE_COL])
+        self.sheet.readonly_columns([VALID_COL, LINE_COL, IMPORT_NAME_COL, IMPORT_TIME_COL, DELETE_COL])
 
         self.sheet.enable_bindings(
             ("single_select", "drag_select", "select_all", "column_select",
@@ -236,8 +237,8 @@ class TabViewEditSets(ttk.Frame):
         sheet_data = []
         items = get_daily_sets(exercise=exercise, start_date=start_date, end_date=end_date, comments=comments, valid=valid)
         for i in range(len(items)):
-            sets_rowid, sets_date, sets_exercise, sets_string, comments, is_valid, imprt_name, imprt_date_time = items[i]
-            sheet_data.append([sets_date, sets_exercise, sets_string, comments, is_valid, imprt_name, imprt_date_time, 'Delete'])
+            sets_rowid, sets_date, sets_exercise, sets_string, comments, is_valid, line, imprt_name, imprt_date_time = items[i]
+            sheet_data.append([sets_date, sets_exercise, sets_string, comments, is_valid, line, imprt_name, imprt_date_time, 'Delete'])
             # Update notes: store rowid in the date column
             self.sheet.note(i, DATE_COL, note=sets_rowid)
         return sheet_data
