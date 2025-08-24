@@ -696,6 +696,20 @@ def _is_sets_string_valid(sets_str : str) -> bool:
         return False
     return True
 
+def _is_date_valid(date_str:str) -> bool:
+    """
+    Check if the given date string is valid, i.e. in YYYY-MM-DD format and is an actual calendar date.
+    """
+    try:
+        y_str, m_str, d_str = date_str.split("-")
+        y = int(y_str)
+        m = int(m_str)
+        d = int(d_str)
+        datetime.date(year=y, month=m, day=d)
+        return True
+    except ValueError:
+        return False
+
 
 def update_daily_sets_to_alias():
     """Update the exercise of each daily_sets record to match the current alias file."""
@@ -742,12 +756,12 @@ def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, int
     cur = con.cursor()
 
     # Validation: add this as an extra item to every tuple in edited_rows
-    # TODO Issue #18 we are only validating sets_string. What about date and exercise?
+    # TODO Issue #18 resolve exercise to alias?
     edited_rows_validated = []
     for edit in edited_rows:
         date, exercise, sets_string, comments, rowid = edit
-        logger.info(f"Validating {sets_string}... {_is_sets_string_valid(sets_string)}")
-        new_t = (date, exercise, sets_string, comments, _is_sets_string_valid(sets_string), rowid)
+        is_valid = _is_date_valid(date) and _is_sets_string_valid(sets_string)
+        new_t = (date, exercise, sets_string, comments, is_valid, rowid)
         edited_rows_validated.append(new_t)
 
     # Update in SQLite
