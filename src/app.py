@@ -14,7 +14,7 @@ import sys
 from screeninfo import get_monitors
 
 from sql_utility import create_tables
-from src.tab_view_edit_sets import TabViewEditSets
+from tab_view_edit_sets import TabViewEditSets
 from tab_import_sets import TabImportSets
 from tab_progress_plots import TabProgressPlots
 
@@ -24,14 +24,15 @@ from tab_progress_plots import TabProgressPlots
 #  LOGGERS              LOGGER_LEVEL    HANDLERS (name, HANDLER_LEVEL)
 #  root (app.py)              DEBUG  => handlers (file, INFO; console, WARNING)
 #     tab_import_sets           //   =>   //
-#     tab_my_sets               //   =>   //
+#     tab_view_edit_sets        //   =>   //
+#     tab_progress_plots        //   =>   //
 #     sql_utility             INFO*  =>   //
 #  matplotlib root           WARNING =>   //
 #
 # *The level of this particular logger can be adjusted through GUI TODO is this needed anymore?
 #
 # root logger level and handler levels are set inside logging_config.json.
-# matplotlib logger leve is set programmatically.
+# matplotlib logger level is set programmatically.
 #
 # In order to see DEBUG messages, you need to manually update one of the
 #  handlers in logging_config.json. None of the handlers enable this by default
@@ -86,26 +87,26 @@ class LiftLog(Tk):
 
         # Init main notebook and tabs. Each notebook tab is a frame.
         main_notebook = ttk.Notebook(self)
-        tab_progress_plots = TabProgressPlots(main_notebook, self.mpl_scale)
-        self.tab_view_edit_sets = TabViewEditSets(main_notebook, tab_progress_plots, screen_height_px)
-        tab_import_sets = TabImportSets(main_notebook, tab_progress_plots, screen_height_px)
+        self.tab_progress_plots = TabProgressPlots(main_notebook, self.mpl_scale)
+        self.tab_view_edit_sets = TabViewEditSets(main_notebook, screen_height_px)
+        self.tab_import_sets = TabImportSets(main_notebook, self.tab_progress_plots, screen_height_px)
 
         # Define layout. For the frames to stretch:
         # - specify sticky when gridding AND
         # - specify weight on the parent's rows and columns!!
         main_notebook.grid(row=0, column=0, sticky='NSEW')
-        tab_progress_plots.grid(row=0, column=0, sticky='NSEW')
+        self.tab_progress_plots.grid(row=0, column=0, sticky='NSEW')
         self.tab_view_edit_sets.grid(row=0, column=0, sticky='NSEW')
-        tab_import_sets.grid(row=0, column=0, sticky='NSEW')
+        self.tab_import_sets.grid(row=0, column=0, sticky='NSEW')
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
-        main_notebook.add(tab_progress_plots, text="Progress Plots")
+        main_notebook.add(self.tab_progress_plots, text="Progress Plots")
         main_notebook.add(self.tab_view_edit_sets, text="View & Edit Sets")
-        main_notebook.add(tab_import_sets, text="Import Sets")
+        main_notebook.add(self.tab_import_sets, text="Import Sets")
 
-        # main_notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
+        main_notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
 
     # This is needed for full exception logging: sometimes Tkinter swallows exceptions.
     def report_callback_exception(self, exc_type, exc_value, exc_traceback):
@@ -113,14 +114,11 @@ class LiftLog(Tk):
         # Optional: show message to user
         # messagebox.showerror("Error", str(exc_value))
 
-    # TODO we could define tab change events here. Currently, we pass around
-    # tab_progress_plots and update it whenever exercise sets are updated.
-    # It might be cleaner to just update the tab when it's selected.
-    # Though it could result in unnecessary database queries.
-    # def on_tab_change(self, event):
-    #     tab = event.widget.tab('current')['text']
-    #     if tab == "View & Edit Sets":
-    #         self.tab_view_edit_sets.update_sheet()
+    # Tab change events.
+    def on_tab_change(self, event):
+        tab = event.widget.tab('current')['text']
+        if tab == "View & Edit Sets":
+            self.tab_view_edit_sets.update_sheet()
 
 if __name__ == '__main__':
     logger.info("App started")

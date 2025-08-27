@@ -227,6 +227,21 @@ def exercise_sets_already_exist(start_date:datetime.date, end_date:datetime.date
 
     return sets_already_exist
 
+def get_exercises():
+    """Get exercises stored in SQLite + 'all'."""
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+    exercises = set()
+    exercises.add("all")
+
+    result = cur.execute("SELECT exercise FROM daily_sets ORDER BY exercise")
+    for item in result.fetchall():
+        exercises.add(item[0])
+
+    cur.close()
+    con.close()
+    return sorted(list(exercises))
+
 
 def get_exercise_sets_dict():
     """

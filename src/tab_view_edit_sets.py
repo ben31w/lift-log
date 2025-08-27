@@ -10,9 +10,8 @@ from tkcalendar import DateEntry
 from tksheet import Sheet
 
 from sql_utility import (get_daily_sets, get_first_date,
-                         update_user_edited_daily_sets, delete_daily_sets)
+                         update_user_edited_daily_sets, delete_daily_sets, get_exercises)
 from common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
-from tab_progress_plots import TabProgressPlots
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +32,17 @@ class TabViewEditSets(ttk.Frame):
     user can view or edit them.
     """
 
-    def __init__(self, parent, tab_progress_plots: TabProgressPlots, starting_height: int = 1080):
+    def __init__(self, parent, starting_height: int = 1080):
         """
         Constructor for View & Edit Sets tab.
         :param parent: a reference to the notebook that stores this tab.
                Required by Tkinter.
-        :param tab_progress_plots: a reference to the Progress Plots Tab is needed because
-               we update elements on that tab as imports are managed.
         :param starting_height: starting height of this frame, passed to the
                VerticalScrolledFrame that this frame contains.
         """
         super().__init__(parent)
 
         # -- Important attributes --
-        self.tab_progress_plots = tab_progress_plots
         # When the user is done editing a cell, track the following fields:
         # (date, exercise, sets_string, comments, rowid)
         # and add them to this list. When the  user clicks SAVE, update the
@@ -75,8 +71,7 @@ class TabViewEditSets(ttk.Frame):
         self.lbl_exercise = ttk.Label(self.frm_entries, text="Exercise")
 
         self.combobox = ttk.Combobox(self.frm_entries, width=20)
-        exercises = sorted(list(self.tab_progress_plots.esd.keys()))
-        self.combobox['values'] = [ALL] + exercises
+        self.combobox['values'] = get_exercises()
         self.combobox.set(ALL)
         self.combobox.bind("<<ComboboxSelected>>", self.update_sheet_from_combobox)
 
@@ -86,14 +81,14 @@ class TabViewEditSets(ttk.Frame):
                                           background='darkblue',
                                           foreground='white',
                                           borderwidth=2)
-        self.date_entry_start.bind("<<DateEntrySelected>>", self.update_sheet)
+        self.date_entry_start.bind("<<DateEntrySelected>>", self._update_sheet)
         self.lbl_end_date = ttk.Label(self.frm_entries, text="End Date")
         self.date_entry_end = DateEntry(self.frm_entries,
                                         width=12,
                                         background='darkblue',
                                         foreground='white',
                                         borderwidth=2)
-        self.date_entry_end.bind("<<DateEntrySelected>>", self.update_sheet)
+        self.date_entry_end.bind("<<DateEntrySelected>>", self._update_sheet)
 
         self.lbl_comments = ttk.Label(self.frm_radiobuttons, text="Comments")
         self.selected_comments = StringVar(value=ANY)
@@ -101,17 +96,17 @@ class TabViewEditSets(ttk.Frame):
                                                text=ANY,
                                                value=ANY,
                                                variable=self.selected_comments,
-                                               command=self._update_sheet)
+                                               command=self.update_sheet)
         self.rb_has_comments = ttk.Radiobutton(self.frm_radiobuttons,
                                                text=HAS_COMMENTS,
                                                value=HAS_COMMENTS,
                                                variable=self.selected_comments,
-                                               command=self._update_sheet)
+                                               command=self.update_sheet)
         self.rb_no_comments = ttk.Radiobutton(self.frm_radiobuttons,
                                               text=NO_COMMENTS,
                                               value=NO_COMMENTS,
                                               variable=self.selected_comments,
-                                              command=self._update_sheet)
+                                              command=self.update_sheet)
 
         self.lbl_valid = ttk.Label(self.frm_radiobuttons, text="Valid")
         self.selected_valid = StringVar(value=ANY)
@@ -119,17 +114,17 @@ class TabViewEditSets(ttk.Frame):
                                             text=ANY,
                                             value=ANY,
                                             variable=self.selected_valid,
-                                            command=self._update_sheet)
+                                            command=self.update_sheet)
         self.rb_invalid = ttk.Radiobutton(self.frm_radiobuttons,
                                           text=INVALID,
                                           value=INVALID,
                                           variable=self.selected_valid,
-                                          command=self._update_sheet)
+                                          command=self.update_sheet)
         self.rb_valid = ttk.Radiobutton(self.frm_radiobuttons,
                                         text=VALID,
                                         value=VALID,
                                         variable=self.selected_valid,
-                                        command=self._update_sheet)
+                                        command=self.update_sheet)
 
         self.btn_save = ttk.Button(self.frm_btns, text="SAVE CHANGES", state=DISABLED, command=self.save_changes)
         self.btn_restore = ttk.Button(self.frm_btns, text="RESTORE CHANGES", state=DISABLED, command=self.restore_changes)
@@ -197,8 +192,8 @@ class TabViewEditSets(ttk.Frame):
         self.combobox.set(self.combobox.get())
         self.combobox.event_generate("<<ComboboxSelected>>")
 
-    def update_sheet(self, event:Event):
-        self._update_sheet()
+    def _update_sheet(self, event:Event):
+        self.update_sheet()
 
     def update_sheet_from_combobox(self, event:Event):
         """
@@ -209,10 +204,13 @@ class TabViewEditSets(ttk.Frame):
         """
         self.date_entry_start.set_date(get_first_date(exercise=self.combobox.get()))
         self.date_entry_end.set_date(datetime.date.today())
-        self._update_sheet()
+        self.update_sheet()
 
-    def _update_sheet(self):
+    def update_sheet(self):
         """Update sheet to match the current filters."""
+        # In addition to updating the sheet, also update list of exercises in combobox.
+        self.combobox['values'] = get_exercises()
+
         exercise = self.combobox.get()
         start_date = self.date_entry_start.get_date()
         end_date = self.date_entry_end.get_date()
@@ -288,10 +286,10 @@ class TabViewEditSets(ttk.Frame):
         rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
         t = (new_date, new_exercise, new_sets_string, new_comments, rowid)
 
-        # TODO it would be nice if we only track changes when content has truly changed.
         self.edited_daily_sets.append(t)
 
-        self.update_controls_and_display()
+        self._style_sheet()
+        self.update_btns()
 
     def save_changes(self):
         """Update edited and deleted rows in SQLite."""
@@ -305,15 +303,18 @@ class TabViewEditSets(ttk.Frame):
         self.edited_daily_sets.clear()
         self.deleted_daily_sets.clear()
 
-        self._update_sheet()
-        self.update_controls_and_display()
+        # Update this tab
+        self.update_sheet()
+        self.update_btns()
+
+        # daily_sets updated -> Update Progress Plots Tab TODO
 
     def restore_changes(self):
         """Restore changes that have been staged."""
         self.edited_daily_sets.clear()
         self.deleted_daily_sets.clear()
-        self._update_sheet()
-        self.update_controls_and_display()
+        self.update_sheet()
+        self.update_btns()
 
     def on_cell_select(self, event):
         """
@@ -331,7 +332,8 @@ class TabViewEditSets(ttk.Frame):
                     self.deleted_daily_sets.remove((rowid,))
                 else:
                     self.deleted_daily_sets.append((rowid,))
-                self.update_controls_and_display()
+                self._style_sheet()
+                self.update_btns()
         except AttributeError:
             # This function appears to get called after a paste operation, but
             #  the content is different/doesn't have a column. The only purpose
@@ -350,13 +352,4 @@ class TabViewEditSets(ttk.Frame):
         else:
             self.btn_save.configure(state=DISABLED)
             self.btn_restore.configure(state=DISABLED)
-
-    def update_controls_and_display(self):
-        """
-        Update controls (save and restore button) and display (sheet styling:
-        this does not update the sheet data itself).
-        """
-        self._style_sheet()
-        self.update_btns()
-
 
