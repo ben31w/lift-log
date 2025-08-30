@@ -307,8 +307,6 @@ class TabViewEditSets(ttk.Frame):
         self.update_sheet()
         self.update_btns()
 
-        # daily_sets updated -> Update Progress Plots Tab TODO
-
     def restore_changes(self):
         """Restore changes that have been staged."""
         self.edited_daily_sets.clear()

@@ -13,18 +13,15 @@ WINDOW_HEIGHT = 100
 WINDOW_WIDTH = 100
 
 class WindowAliasEditor(Toplevel):
-    def __init__(self, tab_import_sets, tab_progress_plots):
+    def __init__(self, tab_import_sets):
         """
         A window for the exercise alias editor.
 
         :param tab_import_sets: a reference to the Import Sets tab is needed
                to allow only one instance of this window to be open.
-        :param tab_progress_plots: a reference to the Progress Plots tab is needed
-               to update exercises.
         """
         super().__init__()
         self.tab_import_sets = tab_import_sets
-        self.tab_progress_plots = tab_progress_plots
 
         self.tab_import_sets.alias_editor_is_open = True
 
@@ -83,7 +80,6 @@ class WindowAliasEditor(Toplevel):
             f.write(after_edits)
 
         update_daily_sets_to_alias()  # update SQLite
-        self.tab_progress_plots.update_exercises() # update Progress Plots tab
 
     def close_window(self):
         # Check if the file has been modified, and ask the user if they want to

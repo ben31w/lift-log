@@ -89,7 +89,7 @@ class LiftLog(Tk):
         main_notebook = ttk.Notebook(self)
         self.tab_progress_plots = TabProgressPlots(main_notebook, self.mpl_scale)
         self.tab_view_edit_sets = TabViewEditSets(main_notebook, screen_height_px)
-        self.tab_import_sets = TabImportSets(main_notebook, self.tab_progress_plots, screen_height_px)
+        self.tab_import_sets = TabImportSets(main_notebook, screen_height_px)
 
         # Define layout. For the frames to stretch:
         # - specify sticky when gridding AND
@@ -117,6 +117,8 @@ class LiftLog(Tk):
     # Tab change events.
     def on_tab_change(self, event):
         tab = event.widget.tab('current')['text']
+        if tab == "Progress Plots":
+            self.tab_progress_plots.update_exercises()
         if tab == "View & Edit Sets":
             self.tab_view_edit_sets.update_sheet()
 

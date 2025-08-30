@@ -24,7 +24,6 @@ from sql_utility import decompress_and_write_html, delete_import, get_import_fil
     get_imports, import_sets_via_html, _log_import_msg, exercise_sets_already_exist
 from sql_utility import logger as sql_logger
 from vertical_scrolled_frame import VerticalScrolledFrame
-from tab_progress_plots import TabProgressPlots
 from window_alias_editor import WindowAliasEditor
 
 logger = logging.getLogger(__name__)
@@ -44,20 +43,17 @@ class TabImportSets(ttk.Frame):
     There is an import status window and a way to remove previous imports.
     """
 
-    def __init__(self, parent, tab_progress_plots : TabProgressPlots, starting_height : int = 1080):
+    def __init__(self, parent, starting_height : int = 1080):
         """
         Constructor for Import Sets tab.
         :param parent: a reference to the notebook that stores this tab.
                Required by Tkinter.
-        :param tab_progress_plots: a reference to the Progress Plots Tab is needed because
-               we update elements on that tab as imports are managed.
         :param starting_height: starting height of this frame, passed to the
                VerticalScrolledFrame that this frame contains.
         """
         super().__init__(parent)
 
         # -- Important Attributes ---
-        self.tab_progress_plots = tab_progress_plots
         self.alias_editor_is_open = False
         header_font = tkfont.Font(family="Arial", size=16, weight=tkfont.BOLD)
 
@@ -76,8 +72,8 @@ class TabImportSets(ttk.Frame):
                                        text="Import Methods",
                                        font=header_font)
         import_method_notebook = ttk.Notebook(self.content_frame)
-        tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self, tab_progress_plots)
-        tab_import_via_apple_notes = SubTabImportSetsViaAppleNotes(import_method_notebook, self, tab_progress_plots)
+        tab_import_via_html = SubTabImportSetsViaHTML(import_method_notebook, self)
+        tab_import_via_apple_notes = SubTabImportSetsViaAppleNotes(import_method_notebook, self)
         lbl_import_status = ttk.Label(self.content_frame,
                                       text="Import Status",
                                       font=header_font)
@@ -269,11 +265,10 @@ class TabImportSets(ttk.Frame):
         delete_import(import_id)
         self.sheet.delete_row(sheet_row)
         self.update_sheet()
-        self.tab_progress_plots.update_exercises()
 
     def open_alias_editor(self):
         if not self.alias_editor_is_open:
-            WindowAliasEditor(self, self.tab_progress_plots)
+            WindowAliasEditor(self)
 
     def update_log_level(self, event: Event):
         """
@@ -291,16 +286,13 @@ class SubTabImportSetsViaHTML(ttk.Frame):
     This frame is where the user imports sets via an HTML file.
     """
 
-    def __init__(self, parent, tab_import_sets: TabImportSets, tab_progress_plots: TabProgressPlots):
+    def __init__(self, parent, tab_import_sets: TabImportSets):
         """
         :param parent: the notebook that stores this tab
         :param tab_import_sets: the overarching tab
-        :param tab_progress_plots: a reference to the Progress Plots Tab is needed because
-               we update elements on that tab as imports are managed.
         """
         super().__init__(parent)
         self.tab_import_sets = tab_import_sets
-        self.tab_progress_plots = tab_progress_plots
 
         # Define widgets, bindings, etc.
         lbl_import_via_html = ttk.Label(self, text="Import sets with an HTML file.")
@@ -366,7 +358,6 @@ class SubTabImportSetsViaHTML(ttk.Frame):
 
             if proceed:
                 import_sets_via_html(html_file, text_widget=self.tab_import_sets.status_msg_area)
-                self.tab_progress_plots.update_exercises()
                 self.tab_import_sets.update_sheet()
 
     def file_already_imported(self, html_filepath) -> bool:
@@ -389,18 +380,15 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
     This frame is where the user imports sets via Apple Notes.
     """
 
-    def __init__(self, parent, tab_import_sets: TabImportSets, tab_progress_plots: TabProgressPlots):
+    def __init__(self, parent, tab_import_sets: TabImportSets):
         """
         :param parent: the notebook that stores this tab
         :param tab_import_sets: the overarching tab
-        :param tab_progress_plots: a reference to the Progress Plots Tab is needed because
-               we update elements on that tab as imports are managed.
         """
         super().__init__(parent)
 
         # Define fields
         self.tab_import_sets = tab_import_sets
-        self.tab_progress_plots = tab_progress_plots
         # Script directory is the directory of this Python file AND the AppleScript (.scpt) file
         self.script_directory = Path(__file__).parent.resolve()
 
@@ -480,7 +468,6 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
                                  text_widget=self.tab_import_sets.status_msg_area,
                                  clear_text_widget=False,
                                  method=APPLE_NOTES)
-            self.tab_progress_plots.update_exercises()
             self.tab_import_sets.update_sheet()
 
             _log_import_msg("Done retrieving Apple Notes!", self.tab_import_sets.status_msg_area)
