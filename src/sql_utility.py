@@ -771,7 +771,7 @@ def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, int
     cur = con.cursor()
 
     # Validation: add this as an extra item to every tuple in edited_rows
-    # TODO Issue #18 resolve exercise to alias?
+    # TODO #18 resolve exercise to alias?
     edited_rows_validated = []
     for edit in edited_rows:
         date, exercise, sets_string, comments, rowid = edit

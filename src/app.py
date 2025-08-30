@@ -29,7 +29,8 @@ from tab_progress_plots import TabProgressPlots
 #     sql_utility             INFO*  =>   //
 #  matplotlib root           WARNING =>   //
 #
-# *The level of this particular logger can be adjusted through GUI TODO is this needed anymore?
+# *The level of this particular logger can be adjusted through GUI:
+#  If switched to DEBUG, a more verbose output is displayed
 #
 # root logger level and handler levels are set inside logging_config.json.
 # matplotlib logger level is set programmatically.

@@ -95,7 +95,7 @@ class WindowAliasEditor(Toplevel):
                 return
             if save_before_exit:
                 self.save()
-        # Close this window TODO not reaching here
+        # Close this window
         self.tab_import_sets.alias_editor_is_open = False
         self.destroy()
 

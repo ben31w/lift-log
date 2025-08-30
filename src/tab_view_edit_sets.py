@@ -59,7 +59,6 @@ class TabViewEditSets(ttk.Frame):
         self.frm_entries = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_radiobuttons = ttk.Frame(self, padding=(12, 12, 3, 3))
         self.frm_btns = ttk.Frame(self, padding=(12, 12, 3, 3))
-        # TODO Issue #13 the sheet doesn't update when an import is added or deleted.
         self.sheet = Sheet(self,
                            theme="light green",
                            height=980,

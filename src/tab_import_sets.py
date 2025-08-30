@@ -35,10 +35,11 @@ DELETE_COL_IDX = 3
 class TabImportSets(ttk.Frame):
     """
     This frame is where the user imports exercise sets from various sources.
-    - HTML imports (work-in-progress)
-    - Apple Notes (TODO)
-    - Manual imports (TODO)
-    - Picture of journal (very ambitious TODO).
+    - HTML imports
+    - Apple Notes
+    - TODO #14 Manual imports
+    - TODO #8 Picture of journal
+    - TODO #15 JSON, CSV, XLSX
 
     There is an import status window and a way to remove previous imports.
     """
@@ -393,7 +394,6 @@ class SubTabImportSetsViaAppleNotes(ttk.Frame):
         self.script_directory = Path(__file__).parent.resolve()
 
         # Define widgets
-        # TODO add functionality to date entries (would require updating AppleScript file)
         lbl_desc = ttk.Label(self, text="Import exercise sets by scanning your Apple Notes. You must be using macOS.")
         lbl_start = ttk.Label(self, text="Start Date")
         self.date_entry_start = DateEntry(self, background='darkblue', foreground='white', borderwidth=2)
