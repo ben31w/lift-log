@@ -10,7 +10,15 @@
 # Lines with text are an exercise name.
 # Blank lines are ignored.
 
-# When you click 'Save', your existing exercise sets will be updated according to this file :)
+# When you click 'Save', your existing exercise sets will be updated according to this file
+
+.arnold press seated
+db arnold press
+arnold press
+arnold
+arnolds
+db arnold
+shoulder press with twists
 
 .bb bench
 bench
@@ -34,8 +42,8 @@ deadlift
 deadlift bar
 deadlift bb
 
-.bb decline
-bb decline bench
+.bb decline bench
+bb decline
 bb decline bench press
 decline
 decline bench
@@ -47,13 +55,22 @@ bb hip thrusts
 hip thrust
 hip thrusts
 
-.bb incline
-bb incline bench
+.bb incline bench
+bb incline
 bb incline bench press
 incline
 incline bench
 incline bench press
 ibp
+incline bench bb
+
+.bb incline pause reps
+ibp paise reps
+ibp pause reps
+incline pause reps
+
+.bb lunges
+lunges
 
 .bb ohp
 ohp
@@ -64,9 +81,22 @@ mp
 bb seated ohp
 seated military press
 
-.bb rdls
+.bb reverse curl
+reverse grip curl
+rgc
+rgcs
+reverse curl
+reverse curl bb
+reverse curl iso
+reverse grip bb curl
+
+.bb rdl
+bb rdls
+rdl
 rdls
 r deadlifts
+r deadlift
+romanian deadlift
 
 .bb row overhand
 bb row o
@@ -78,6 +108,7 @@ overhand bb row
 .bb row underhand
 bb row u
 bbrs u
+underhand bb row
 
 .bb row with hold
 
@@ -141,6 +172,8 @@ cable kneeing lat pulldown
 
 .c lateral raises
 cable lateral raise
+lateral raise cable
+lateral raise cables
 
 .c lateral raise behind the back
 cable behind the back lateral raise
@@ -168,8 +201,34 @@ dp row
 .c row lats
 cable row lats
 
+.c tri extension
+tri extension
+
+.c tri extension rope
+tri extension rope
+tri overhead ext rope
+
 .c tri kickbacks
 cable tri kickback
+tri kickback
+
+.c tri pushdown
+tp
+tr pushdown
+tri pushdown
+tri pushdown underhand
+
+.c tri pushdown rope
+tp rope
+tri push down rope
+tri pushdown rope
+
+
+.c tri pushdown single arm
+tri pushdown 1 arm
+tri pushdown 1arm
+tri pushdown sa
+tri pushdown single arm
 
 .c wrist ext
 cable wrist extension
@@ -177,10 +236,13 @@ cable wrist extension
 .c y raise
 cable y raise
 
-.db arnold press
-arnold press
-arnold
-arnolds
+.chin up weighted
+wcus
+weighted chin up
+
+.dead hang
+pull up hold
+pull up holds
 
 .db around the world flyes
 around the world
@@ -217,7 +279,8 @@ bulgarians
 alt cross body curl
 alternating cross body hammer curl
 
-.db decline
+.dh decline bench
+db decline
 decline db
 decline db press
 
@@ -225,11 +288,39 @@ decline db press
 db flyes
 db flys
 
-.db incline
+.db incline bench
+db incline
 db incline press
+incline bench db
+incline db
+
+.db incline fly
+incline db fly
+incline flyes
+incline pec fly
+incline pec fly db
 
 .db lateral/front raise
 db later front raise combo
+lateral/front delt raise
+
+.db lateral raise
+lat raise
+lateral raise
+lateral raise db
+lateral raise standing
+
+.db lateral raise on bench
+lateral raise on bench
+lateral raise seated db
+
+.db leg raise
+leg raise
+weighted leg raise
+
+.db lunges
+lunges db
+lunges dbs
 
 .db ohp
 db shoulder press
@@ -238,15 +329,59 @@ db seated ohp
 ohp db
 ohp db seated
 shoulder db press
+shoulder press
+shoulder press db
 
 .db ohp standing
 db shoulder press standing
+
+.db rdl
+rdl dbs
+rdls db
+rdls dbs
 
 .dips
 dip
 
 .hb deadlift
 deadlift hb
+
+.hd rdl
+rdls hb
+
+.landmine chest press
+landmine press
+
+.lat pulldown ng
+lp ng
+
+.leg curl seated
+leg curl
+seated leg curl
+seated leg curl machine
+seated leg curl, no lean
+
+.leg curl seated leaning
+seated leg curl lean over
+
+.leg curl seated strength
+seated leg curl str
+
+.leg curl matrix
+matrix seated leg curl
+
+.leg extension
+leg extension machine
+
+.leg extension matrix
+matrix leg extension
+
+.lp
+leg press
+leg press ham/glutes
+leg press machine
+lp cnu
+lp machine
 
 .lp calf raise
 claf raise lp
@@ -287,6 +422,36 @@ calf raise machine plates
 .m hip abductor
 hip abductor
 ass abductor
+matrix hip abductor
+
+.m hip adductor
+matrix hip adductor
+
+.m lateral raise
+lateral raise machine
+
+.m pec fly
+pec deck
+pec fly
+pec fly machine
+pec flys
+
+.m seated lp
+seated leg press
+seated lp machine
+
+.pull up
+pullup
+
+.pull up + dead hang
+pull up w dead hang
+
+.pull up weighted
+weighted pull up
+wpus
+
+.sap
+saps
 
 .sm calf raise
 calf raise smith
