@@ -6,6 +6,7 @@ import logging
 import math
 import os.path
 import sqlite3
+from pathlib import Path
 from tkinter import END, Text
 from typing import Dict
 
@@ -864,3 +865,41 @@ def _log_import_msg(msg, text_widget, level="INFO"):
     # if logger_level <= level:
     #     print_to_text_widget(msg, text_widget, level)
 
+
+def write_daily_sets_to_html(html_file_to_write:Path):
+    """Retrieve all daily sets items in SQLite, and write them to an HTML file."""
+    # TODO this function (or the AppleScript file) needs some work if we want to
+    #  import the file that's being produced.
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    daily_sets = cur.execute("SELECT date, exercise, sets_string, comments FROM daily_sets ORDER BY date")
+    lines = [
+        '<!DOCTYPE html>', '<html lang="en">', '<head>'
+        '    <meta charset="UTF-8">', '    <title>Title</title>',
+        '</head>', '<body>', f'    <h1>{html_file_to_write.name}</h1>'
+    ]
+    curr_date = None
+
+    for item in daily_sets.fetchall():
+        dt, exercise, sets_string, comments = item
+
+        # Write date on h2 line, and start a new list.
+        if dt != curr_date:
+            if curr_date is not None:
+                lines.append('    </ul>')
+            curr_date = dt
+            dt = dt.replace('-', '/')
+            lines.append(f'    <h2>{dt}</h2>')
+            lines.append( '    <ul>')
+
+        # Write exercise, sets_string, and comments on li line
+        lines.append(f'        <li>{exercise}: {sets_string} {comments}</li>')
+
+    lines += ['    </ul>', '</body>', '</html>']
+
+    with open(html_file_to_write, 'w') as f:
+        f.writelines(lines)
+
+    cur.close()
+    con.close()

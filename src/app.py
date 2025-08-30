@@ -14,6 +14,7 @@ import sys
 from screeninfo import get_monitors
 
 from sql_utility import create_tables
+from tab_export_sets import TabExportSets
 from tab_view_edit_sets import TabViewEditSets
 from tab_import_sets import TabImportSets
 from tab_progress_plots import TabProgressPlots
@@ -89,8 +90,9 @@ class LiftLog(Tk):
         # Init main notebook and tabs. Each notebook tab is a frame.
         main_notebook = ttk.Notebook(self)
         self.tab_progress_plots = TabProgressPlots(main_notebook, self.mpl_scale)
-        self.tab_view_edit_sets = TabViewEditSets(main_notebook, screen_height_px)
+        self.tab_view_edit_sets = TabViewEditSets(main_notebook)
         self.tab_import_sets = TabImportSets(main_notebook, screen_height_px)
+        self.tab_export_sets = TabExportSets(main_notebook)
 
         # Define layout. For the frames to stretch:
         # - specify sticky when gridding AND
@@ -99,6 +101,7 @@ class LiftLog(Tk):
         self.tab_progress_plots.grid(row=0, column=0, sticky='NSEW')
         self.tab_view_edit_sets.grid(row=0, column=0, sticky='NSEW')
         self.tab_import_sets.grid(row=0, column=0, sticky='NSEW')
+        self.tab_export_sets.grid(row=0, column=0, sticky='NSEW')
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
@@ -106,6 +109,7 @@ class LiftLog(Tk):
         main_notebook.add(self.tab_progress_plots, text="Progress Plots")
         main_notebook.add(self.tab_view_edit_sets, text="View & Edit Sets")
         main_notebook.add(self.tab_import_sets, text="Import Sets")
+        main_notebook.add(self.tab_export_sets, text="Export Sets")
 
         main_notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
 

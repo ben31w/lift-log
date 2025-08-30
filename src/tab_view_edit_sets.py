@@ -32,13 +32,11 @@ class TabViewEditSets(ttk.Frame):
     user can view or edit them.
     """
 
-    def __init__(self, parent, starting_height: int = 1080):
+    def __init__(self, parent):
         """
         Constructor for View & Edit Sets tab.
         :param parent: a reference to the notebook that stores this tab.
                Required by Tkinter.
-        :param starting_height: starting height of this frame, passed to the
-               VerticalScrolledFrame that this frame contains.
         """
         super().__init__(parent)
 
@@ -159,7 +157,7 @@ class TabViewEditSets(ttk.Frame):
         self.rowconfigure(3, weight=1)
         self.columnconfigure(0, weight=1)
 
-        # Important set up
+        # --- Important set up ---
         self.config_sheet()
         pad_frame(self.frm_radiobuttons)
         self.selected_comments.set(ANY)
