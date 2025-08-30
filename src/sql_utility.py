@@ -875,28 +875,30 @@ def write_daily_sets_to_html(html_file_to_write:Path):
 
     daily_sets = cur.execute("SELECT date, exercise, sets_string, comments FROM daily_sets ORDER BY date")
     lines = [
-        '<!DOCTYPE html>', '<html lang="en">', '<head>'
-        '    <meta charset="UTF-8">', '    <title>Title</title>',
-        '</head>', '<body>', f'    <h1>{html_file_to_write.name}</h1>'
+        '<!DOCTYPE html>\n', '<html lang="en">\n', '<head>\n'
+        '    <meta charset="UTF-8">\n', '    <title>Title</title>\n',
+        '</head>\n', '<body>\n', f'    <h1>{html_file_to_write.name}</h1>\n'
     ]
     curr_date = None
 
     for item in daily_sets.fetchall():
-        dt, exercise, sets_string, comments = item
+        dt_string, exercise, sets_string, comments = item
+
+        y, m, d = [int(p) for p in dt_string.split('-')]
+        dt = datetime.date(year=y, month=m, day=d)
 
         # Write date on h2 line, and start a new list.
         if dt != curr_date:
             if curr_date is not None:
-                lines.append('    </ul>')
+                lines.append('    </ul>\n')
             curr_date = dt
-            dt = dt.replace('-', '/')
-            lines.append(f'    <h2>{dt}</h2>')
-            lines.append( '    <ul>')
+            lines.append(f'    <h2>{dt.month}/{dt.day}/{dt.year}</h2>\n')
+            lines.append( '    <ul>\n')
 
         # Write exercise, sets_string, and comments on li line
-        lines.append(f'        <li>{exercise}: {sets_string} {comments}</li>')
+        lines.append(f'        <li>{exercise}: {sets_string} {comments}</li>\n')
 
-    lines += ['    </ul>', '</body>', '</html>']
+    lines += ['    </ul>\n', '</body>\n', '</html>\n']
 
     with open(html_file_to_write, 'w') as f:
         f.writelines(lines)
