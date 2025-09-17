@@ -291,8 +291,13 @@ def get_exercise_sets_from_daily_sets(daily_sets_item : tuple [str, str, str]):
     :return: all ExerciseSet objects that can be parsed from the daily_set item.
     """
     exercise, date_str, sets_str = daily_sets_item
+
+    sets_str = sets_str.replace(' ', '')  # strip whitespace
+
+    # retrieve date
     y, m, d = [int(p) for p in date_str.split('-')]
     date_of_sets = datetime.date(year=y, month=m, day=d)
+
     if sets_str.__contains__('@'):
         # These are sets for a typical weighted exercise
         return _get_weight_and_exercise_sets(exercise, sets_str, date_of_sets)
@@ -382,7 +387,7 @@ def _split_sets_string(sets_str: str) -> list[str]:
     :param sets_str: sets_str of a daily_sets item
     :return: list of [setsxreps, wt, setsxreps, wt, ... ]
     """
-    # input:               '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
+    # input:               '10@65, ~8@70, 5+1@75, 4,5@80, 2x3@85, 2x2,~1@90'
     # first_split format:  ['10', '65', '~8', '70,5+1', '75,4,5', '80,2x3', '85,2x2,~1', '90']
     # second_split format: ['10', '65', '~8', '70', '5+1', '75', '4,5', '80', '2x3', '85', '2x2,~1', '90']
     first_split = sets_str.split("@")
@@ -391,7 +396,7 @@ def _split_sets_string(sets_str: str) -> list[str]:
     for part in first_split[1:]:
         subparts = part.split(',', maxsplit=1)
         for subpart in subparts:
-            second_split.append(subpart)
+            second_split.append(subpart.strip())
     return second_split
 
 
@@ -488,7 +493,7 @@ def _parse_exercise(ln: str, alias_dict: Dict) -> str:
     return result
 
 
-def _sanitize_sets(ln: str) -> (str, str):
+def _sanitize_sets(ln: str) -> tuple[str, str]:
     """
     Given the portion of a workout line indicating the sets, strip comments and
     undesirable characters.
@@ -507,7 +512,7 @@ def _sanitize_sets(ln: str) -> (str, str):
         ln = ln[:idx_tag]
 
     # First, attempt to retrieve comments.
-    # Split by commas, and check each part for commas:
+    # Split by commas, and check each part for comments:
     # (1) If any part starts with a letter, it's a comment.
     # (2) Within each part, if there are characters that don't fit our valid
     #     set syntax, then they indicate the start of a comment.
@@ -534,14 +539,14 @@ def _sanitize_sets(ln: str) -> (str, str):
                 break
         sanitized_parts.append(part)
 
-    result = ",".join(sanitized_parts)
+    result = ", ".join(sanitized_parts)
 
     # Some extra sanitization
-    result = result.replace(' ', '')  # temporary, maybe
     result = result.replace(',,', ',')
     result = result.replace(',@', '@')
     result = result.replace('@,', '@')
     result = result.replace('+@', '@')
+
 
     return result.strip(), comments.strip()
 
