@@ -19,12 +19,13 @@ import webbrowser
 from tkcalendar import DateEntry
 from tksheet import Sheet
 
-from common import hash_html, pad_frame, APPLE_NOTES
-from sql_utility import decompress_and_write_html, delete_import, get_import_file_hashes_only, \
-    get_imports, import_sets_via_html, _log_import_msg, exercise_sets_already_exist
-from sql_utility import logger as sql_logger
-from vertical_scrolled_frame import VerticalScrolledFrame
-from window_alias_editor import WindowAliasEditor
+from src.common import hash_html, pad_frame, APPLE_NOTES
+from src.sql_utility import (decompress_and_write_html, delete_import,
+     get_import_file_hashes_only, get_imports, import_sets_via_html,
+    _log_import_msg, exercise_sets_already_exist)
+from src.sql_utility import logger as sql_logger
+from src.ui.vertical_scrolled_frame import VerticalScrolledFrame
+from src.ui.window_alias_editor import WindowAliasEditor
 
 logger = logging.getLogger(__name__)
 

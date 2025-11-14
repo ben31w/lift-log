@@ -16,8 +16,8 @@ from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
-from exercise_set import ExerciseSet
-from sql_utility import get_exercise_sets_dict
+from src.exercise_set import ExerciseSet
+from src.sql_utility import get_exercise_sets_dict
 
 logger = logging.getLogger(__name__)
 matplotlib.set_loglevel('warning')  # reduces log file clutter.
@@ -50,6 +50,7 @@ def build_date_sets_string(date_obj: date, list_of_sets: list[ExerciseSet]) -> s
             # Keep weight from the last set, but add new number of reps
             elif prev_set.weight == curr_set.weight:
                 last_part = date_sets_str.rsplit(" ", 1)[1]
+                # TODO this appears to fail for sets that don't have an @, like pull ups
                 pre_at, post_at = last_part.split("@")
                 new_part = f"{pre_at},1x{curr_set.reps}@{post_at}"
                 date_sets_str = date_sets_str.replace(last_part, new_part)

@@ -14,10 +14,10 @@ import sys
 from screeninfo import get_monitors
 
 from sql_utility import create_tables
-from tab_export_sets import TabExportSets
-from tab_view_edit_sets import TabViewEditSets
-from tab_import_sets import TabImportSets
-from tab_progress_plots import TabProgressPlots
+from src.ui.tab_export_sets import TabExportSets
+from src.ui.tab_view_edit_sets import TabViewEditSets
+from src.ui.tab_import_sets import TabImportSets
+from src.ui.tab_progress_plots import TabProgressPlots
 
 
 # LOAD + CONFIGURE LOGGER

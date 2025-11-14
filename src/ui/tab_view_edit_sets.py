@@ -9,9 +9,9 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 from tksheet import Sheet
 
-from sql_utility import (get_daily_sets, get_first_date,
-                         update_user_edited_daily_sets, delete_daily_sets, get_exercises)
-from common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
+from src.sql_utility import (get_daily_sets, get_first_date,
+    update_user_edited_daily_sets, delete_daily_sets, get_exercises)
+from src.common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
 
 logger = logging.getLogger(__name__)
 

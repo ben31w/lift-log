@@ -7,7 +7,7 @@ from tkinter import ttk
 from tkinter.constants import END, INSERT, SEL
 from tkinter.scrolledtext import ScrolledText
 
-from sql_utility import ALIASES_FILE, update_daily_sets_to_alias
+from src.sql_utility import ALIASES_FILE, update_daily_sets_to_alias
 
 WINDOW_HEIGHT = 100
 WINDOW_WIDTH = 100
