@@ -20,7 +20,13 @@ progress over time of each exercise.
 
 The app isn't neatly packaged (yet). The ideal way to set up the app is:
 
-1. Clone the project. `git clone https://github.com/ben31w/lift-log.git`
+1. Get the project on to your computer.
+    1. If you have Git, you can clone it: `git clone https://github.com/ben31w/lift-log.git`
+    2. Otherwise, you can download + extract the zip:
+        1. On this page, click the green 'Code' button.
+        2. In the Code menu, click 'Download ZIP'
+        3. Extract the zip file to a directory of your choosing.
+        4. Open a command prompt and follow rest of procedure.
 2. Change directory. `cd lift-log`
 3. Create virtual environment. `python -m venv .venv`
 4. Activate virtual environment. 
