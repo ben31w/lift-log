@@ -20,17 +20,20 @@ progress over time of each exercise.
 
 The app isn't neatly packaged (yet). The ideal way to set up the app is:
 
-1. Clone the project. `git clone git@github.com:ben31w/lift-log.git`
-2. Create virtual environment. `python -m venv .venv`
-3. Activate virtual environment. `source .venv/bin/activate`
-4. Install dependencies. `pip install -r requirements.txt`
+1. Clone the project. `git clone https://github.com/ben31w/lift-log.git`
+2. Change directory. `cd lift-log`
+3. Create virtual environment. `python -m venv .venv`
+4. Activate virtual environment. 
+  1. macOS/Linux: `source .venv/bin/activate`
+  2. Windows: `.venv\Scripts\Activate`
+5. Install dependencies. `pip install -r requirements.txt`
 
 ### Running
 
 Once set up, the ideal way to run the app is:
 
-1. `./run.sh`
-
+- macOS/Linux: `./run.sh`
+- Windows: click `run.bat`
 
 ## How to use Lift Log
 
