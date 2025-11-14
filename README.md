@@ -30,8 +30,8 @@ The app isn't neatly packaged (yet). The ideal way to set up the app is:
 2. Change directory. `cd lift-log`
 3. Create virtual environment. `python -m venv .venv`
 4. Activate virtual environment. 
-  1. macOS/Linux: `source .venv/bin/activate`
-  2. Windows: `.venv\Scripts\Activate`
+    1. macOS/Linux: `source .venv/bin/activate`
+    2. Windows: `.venv\Scripts\Activate`
 5. Install dependencies. `pip install -r requirements.txt`
 
 ### Running

@@ -18,10 +18,10 @@ from exercise_set import ExerciseSet
 logger = logging.getLogger(__name__)
 
 # Filepath for the user's SQLite file
-SQLITE_FILE = "usr" + os.path.sep + "personal.db"
+SQLITE_FILE = os.path.join("usr", "personal.db")
 
 # Filepath for the user's exercise aliases file
-ALIASES_FILE = "usr" + os.path.sep + "aliases.txt"
+ALIASES_FILE = os.path.join("usr", "aliases.txt")
 
 # These are the tag names used by the Import Status Msg Area.
 # They mirror the built-in logging level names.
@@ -670,7 +670,7 @@ def import_sets_via_html(html_filepath:str,
         max_date = cur.execute(f"SELECT MAX(date) FROM daily_sets WHERE import_id = {import_id}").fetchone()[0]
 
         if method == HTML:
-            html_filename = html_filepath[html_filepath.rindex(os.sep) + 1:]
+            html_filename = html_filepath[html_filepath.rindex('/') + 1:]
             name = f"{html_filename}, {min_date} to {max_date}"
         else:
             name = f"{method}, {min_date} to {max_date}"
@@ -821,7 +821,7 @@ def decompress_and_write_html(import_id: int) -> str:
     """
     file_hash, file_compressed_content = get_file_hash_and_content(import_id)
     html_content = decompress_html(file_compressed_content)
-    file_to_write = f'usr{os.path.sep}ben31w_{file_hash}.html'
+    file_to_write = os.path.join("usr",  f"usr_{file_hash}.html")
     with open(file_to_write, 'w') as f:
         f.write(html_content)
     return file_to_write

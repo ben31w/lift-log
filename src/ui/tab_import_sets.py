@@ -359,6 +359,8 @@ class SubTabImportSetsViaHTML(ttk.Frame):
                 proceed = True
 
             if proceed:
+                # Replace backslash with slash. Windows should be able to handle this 99.99% of the time.
+                html_file = html_file.replace('\\', '/')
                 import_sets_via_html(html_file, text_widget=self.tab_import_sets.status_msg_area)
                 self.tab_import_sets.update_sheet()
 
