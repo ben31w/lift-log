@@ -118,8 +118,31 @@ def get_first_date(exercise=None):
     con.close()
     return dt
 
-def get_daily_sets(exercise:str=ALL, start_date:datetime.date=None,
-                   end_date:datetime.date=None, comments:str=ANY, valid:str=ANY):
+
+def get_daily_sets(exercise: str) -> list[tuple]:
+    """Get daily_sets items from SQLite associated with given exercise."""
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
+
+    result = cur.execute(f"""
+        SELECT exercise, date, sets_string, comments FROM daily_sets 
+        WHERE is_valid = 1 AND exercise = '{exercise}'  
+        ORDER BY date
+    """)
+    items = result.fetchall()  # fetch list of tuples
+
+    cur.close()
+    con.close()
+
+    return items
+
+
+def get_daily_sets_with_imports(exercise: str = ALL,
+                                start_date: datetime.date = None,
+                                end_date: datetime.date = None,
+                                comments: str = ANY,
+                                valid: str = ANY
+                                ) -> list[tuple]:
     """
     Retrieve daily sets items from SQLite, and return them as a list of tuples.
     This returns the fields needed to build the View & Edit Sets table, so it
@@ -228,12 +251,16 @@ def exercise_sets_already_exist(start_date:datetime.date, end_date:datetime.date
 
     return sets_already_exist
 
-def get_exercises():
-    """Get exercises stored in SQLite + 'all'."""
+def get_exercises(add_all: bool=False) -> list[str]:
+    """
+    Get exercises stored in SQLite. Also add the string literal 'all' to
+    the list is add_all is True.
+    """
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()
     exercises = set()
-    exercises.add("all")
+    if add_all:
+        exercises.add("all")
 
     result = cur.execute("SELECT exercise FROM daily_sets ORDER BY exercise")
     for item in result.fetchall():
@@ -552,10 +579,10 @@ def _sanitize_sets(ln: str) -> tuple[str, str]:
 
 
 def import_sets_via_html(html_filepath:str,
-                         existing_import_id:int=None,
-                         text_widget:Text=None,
-                         clear_text_widget:bool=True,
-                         method:str=HTML):
+                         existing_import_id: int = None,
+                         text_widget: Text = None,
+                         clear_text_widget: bool = True,
+                         method: str = HTML):
     """
     This function reads an HTML file and inserts data into SQLite.
 

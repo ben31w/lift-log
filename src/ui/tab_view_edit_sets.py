@@ -9,8 +9,8 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 from tksheet import Sheet
 
-from src.sql_utility import (get_daily_sets, get_first_date,
-    update_user_edited_daily_sets, delete_daily_sets, get_exercises)
+from src.sql_utility import (get_daily_sets_with_imports, get_first_date,
+                             update_user_edited_daily_sets, delete_daily_sets, get_exercises)
 from src.common import pad_frame, ANY, HAS_COMMENTS, NO_COMMENTS, VALID, INVALID
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class TabViewEditSets(ttk.Frame):
         self.lbl_exercise = ttk.Label(self.frm_entries, text="Exercise")
 
         self.combobox = ttk.Combobox(self.frm_entries, width=20)
-        self.combobox['values'] = get_exercises()
+        self.combobox['values'] = get_exercises(add_all=True)
         self.combobox.set(ALL)
         self.combobox.bind("<<ComboboxSelected>>", self.update_sheet_from_combobox)
 
@@ -206,7 +206,7 @@ class TabViewEditSets(ttk.Frame):
     def update_sheet(self):
         """Update sheet to match the current filters."""
         # In addition to updating the sheet, also update list of exercises in combobox.
-        self.combobox['values'] = get_exercises()
+        self.combobox['values'] = get_exercises(add_all=True)
 
         exercise = self.combobox.get()
         start_date = self.date_entry_start.get_date()
@@ -230,7 +230,7 @@ class TabViewEditSets(ttk.Frame):
         :return: [[daily_sets1], [daily_sets2], ...]
         """
         sheet_data = []
-        items = get_daily_sets(exercise=exercise, start_date=start_date, end_date=end_date, comments=comments, valid=valid)
+        items = get_daily_sets_with_imports(exercise=exercise, start_date=start_date, end_date=end_date, comments=comments, valid=valid)
         for i in range(len(items)):
             sets_rowid, sets_date, sets_exercise, sets_string, comments, is_valid, line, imprt_name, imprt_date_time = items[i]
             sheet_data.append([sets_date, sets_exercise, sets_string, comments, is_valid, line, imprt_name, imprt_date_time, 'Delete'])

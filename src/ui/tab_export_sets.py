@@ -21,13 +21,13 @@ class TabExportSets(ttk.Frame):
 
     def __init__(self, parent):
         """
-        Constructor for Export Sets tab.
+        Constructor for this tab.
         :param parent: a reference to the notebook that stores this tab.
                Required by Tkinter.
         """
         super().__init__(parent)
 
-        # -- Important attributes --
+        # -- Important variables --
         desc = ("You can export all your exercise sets into an HTML file here. "
                 "This file can be opened in your web browser, modified, and "
                 "imported like any other HTML file.")

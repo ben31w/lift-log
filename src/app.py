@@ -18,6 +18,7 @@ from src.ui.tab_export_sets import TabExportSets
 from src.ui.tab_view_edit_sets import TabViewEditSets
 from src.ui.tab_import_sets import TabImportSets
 from src.ui.tab_progress_plots import TabProgressPlots
+from src.ui.tab_training_arcs import TabTrainingArcs
 
 
 # LOAD + CONFIGURE LOGGER
@@ -61,12 +62,7 @@ class LiftLog(Tk):
         Tk.__init__(self, *args, **kwargs)
         self.title("Lift Log")
 
-        # Width/height of the user's primary display determines starting
-        # width/height of the application.
-
         # Check for a primary display, and get its width and height.
-        # We arbitrarily assume a starting screen res of 1920x1080, but this
-        # should get overridden when we check for a primary display.
         screen_width_px = 1920
         screen_height_px = 1080
         for m in get_monitors():
@@ -93,6 +89,7 @@ class LiftLog(Tk):
         self.tab_view_edit_sets = TabViewEditSets(main_notebook)
         self.tab_import_sets = TabImportSets(main_notebook, screen_height_px)
         self.tab_export_sets = TabExportSets(main_notebook)
+        self.tab_training_arcs = TabTrainingArcs(main_notebook)
 
         # Define layout. For the frames to stretch:
         # - specify sticky when gridding AND
@@ -102,6 +99,7 @@ class LiftLog(Tk):
         self.tab_view_edit_sets.grid(row=0, column=0, sticky='NSEW')
         self.tab_import_sets.grid(row=0, column=0, sticky='NSEW')
         self.tab_export_sets.grid(row=0, column=0, sticky='NSEW')
+        self.tab_training_arcs.grid(row=0, column=0, sticky='NSEW')
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
@@ -110,6 +108,7 @@ class LiftLog(Tk):
         main_notebook.add(self.tab_view_edit_sets, text="View & Edit Sets")
         main_notebook.add(self.tab_import_sets, text="Import Sets")
         main_notebook.add(self.tab_export_sets, text="Export Sets")
+        main_notebook.add(self.tab_training_arcs, text="Training Arcs")
 
         main_notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
 
@@ -124,8 +123,10 @@ class LiftLog(Tk):
         tab = event.widget.tab('current')['text']
         if tab == "Progress Plots":
             self.tab_progress_plots.update_exercises()
-        if tab == "View & Edit Sets":
+        elif tab == "View & Edit Sets":
             self.tab_view_edit_sets.update_sheet()
+        elif tab == "Training Arcs":
+            self.tab_training_arcs.update_exercises()
 
 if __name__ == '__main__':
     logger.info("App started")
