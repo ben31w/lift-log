@@ -190,6 +190,9 @@ class TabViewEditSets(ttk.Frame):
         self.combobox.event_generate("<<ComboboxSelected>>")
 
     def _update_sheet(self, event:Event):
+        """
+        Call update_sheet. A separate method is needed to store the event parameter.
+        """
         self.update_sheet()
 
     def update_sheet_from_combobox(self, event:Event):

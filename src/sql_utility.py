@@ -13,7 +13,7 @@ from typing import Dict
 from common import (hash_html, compress_html, decompress_html,
                     print_to_text_widget, ALL, ANY, VALID, HAS_COMMENTS,
                     NO_COMMENTS, INVALID, HTML)
-from exercise_set import ExerciseSet
+from src.obj.exercise_set import ExerciseSet
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ def get_first_date(exercise=None):
     return dt
 
 
-def get_daily_sets(exercise: str) -> list[tuple]:
+def get_daily_sets(exercise: str) -> list[tuple[str, str, str, str]]:
     """Get daily_sets items from SQLite associated with given exercise."""
     con = sqlite3.connect(SQLITE_FILE)
     cur = con.cursor()

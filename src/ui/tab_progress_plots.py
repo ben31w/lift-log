@@ -16,7 +16,7 @@ from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from tkcalendar import DateEntry
 
-from src.exercise_set import ExerciseSet
+from src.obj.exercise_set import ExerciseSet
 from src.sql_utility import get_exercise_sets_dict
 
 logger = logging.getLogger(__name__)

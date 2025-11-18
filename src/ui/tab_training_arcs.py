@@ -9,7 +9,10 @@ from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 import tkinter.font as tkfont
 
+from tksheet import Sheet
+
 from src.common import pad_frame
+from src.obj.exercise_arc import DailySets, ExerciseArc
 from src.sql_utility import get_daily_sets, get_exercises
 
 logger = logging.getLogger(__name__)
@@ -17,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def get_arcs(exercise: str,
              separator: int = 30
-             ) -> list[list[tuple[str, str, str, str]]]:
+             ) -> list[ExerciseArc]:
     """
     Return arcs for the given exercise.
     An arc represents a training period for an exercise, and it consists of
@@ -33,30 +36,23 @@ def get_arcs(exercise: str,
     :param separator: minimum num days that separates one arc from another
     :return: arcs
     """
-    daily_sets = get_daily_sets(exercise)
-    arcs = []
-    curr_arc = [daily_sets[0]]
-
-    idx_exercise = 0
-    idx_date = 1
-    idx_sets_string = 2
-    idx_comments = 3
+    daily_sets: list[DailySets] = [DailySets(t) for t in get_daily_sets(exercise)]
+    arcs: list[ExerciseArc] = []
+    curr_arc: ExerciseArc = ExerciseArc([daily_sets[0]])
 
     for i in range(1, len(daily_sets)):
         # Find timedelta between current item and previous item
         curr = daily_sets[i]
         prev = daily_sets[i - 1]
-        curr_date = datetime.strptime(curr[idx_date], "%Y-%m-%d").date()
-        prev_date = datetime.strptime(prev[idx_date], "%Y-%m-%d").date()
-        diff = curr_date - prev_date
+        diff = curr.date - prev.date
 
         if diff.days < separator:
             # current item is part of current arc.
-            curr_arc.append(curr)
+            curr_arc.add_daily_sets_obj(curr)
         else:
             # current item is the start of a new arc.
             arcs.append(curr_arc)
-            curr_arc = [curr]
+            curr_arc = ExerciseArc([curr])
 
     arcs.append(curr_arc)
 
@@ -65,9 +61,9 @@ def get_arcs(exercise: str,
     return arcs
 
 
-def prune_arcs(arcs: list[list[tuple[str, str, str, str]]],
+def prune_arcs(arcs: list[ExerciseArc],
                min_len: int = 4,
-               ) -> list[list[tuple[str, str, str, str]]]:
+               ) -> list[ExerciseArc]:
     """
     Remove arcs that are too short. Except the most recent arc. That can stay.
 
@@ -142,6 +138,7 @@ class TabTrainingArcs(ttk.Frame):
         Search for training arcs with the selected exercise and separator.
         Update the results frame.
         """
+        # Get training arcs from current selection
         exercise = self.combobox.get()
         try:
             separator = int(self.entry_separator.get())
@@ -150,7 +147,6 @@ class TabTrainingArcs(ttk.Frame):
         except ValueError:
             self.lbl_found_arcs.config(text="Separator must be a positive integer.")
             return
-
         arcs = get_arcs(exercise, separator)
         self.lbl_found_arcs.config(text=f"Found {len(arcs)} arcs.")
 
@@ -161,11 +157,24 @@ class TabTrainingArcs(ttk.Frame):
         # Display new results
         for idx, arc in enumerate(arcs):
             logger.info(f"\nARC {idx}")
-            for i in arc:
+            for i in arc.daily_sets_list:
                 logger.info(i)
-            new_lbl = ttk.Label(self.frm_results, text=f"ARC {idx}")
-            new_lbl.grid(row=len(arcs)-idx, column=0)
+
+            # Create a frame to store a label and a Tksheet.
+            new_frm = ttk.Frame(self.frm_results)
+            new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
+            new_sheet = Sheet(new_frm,
+                              theme="light green",
+                              height=300,
+                              width=1000,
+                              headers=[ds.date for ds in arc.daily_sets_list])
+
+            new_frm.grid(row=len(arcs)-idx, column=0)
+            new_lbl.grid(row=0, column=0)
+            new_sheet.grid(row=1, column=0)
 
         pad_frame(self.frm_results)
+
+
 
 
