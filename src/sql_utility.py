@@ -10,7 +10,7 @@ from pathlib import Path
 from tkinter import END, Text
 from typing import Dict
 
-from common import (hash_html, compress_html, decompress_html,
+from src.common import (hash_html, compress_html, decompress_html,
                     print_to_text_widget, ALL, ANY, VALID, HAS_COMMENTS,
                     NO_COMMENTS, INVALID, HTML)
 from src.obj.exercise_set import ExerciseSet

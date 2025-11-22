@@ -13,7 +13,7 @@ from tksheet import Sheet
 
 from src.common import pad_frame
 from src.obj.exercise_arc import DailySets, ExerciseArc
-from src.sql_utility import get_daily_sets, get_exercises
+from src.sql_utility import get_daily_sets, get_exercises, _split_sets_string
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,36 @@ def prune_arcs(arcs: list[ExerciseArc],
     return filtered_arcs
 
 
+def config_sheet(sheet: Sheet) -> None:
+    """Configure a Sheet."""
+    sheet.readonly()
+    sheet.enable_bindings(
+        "single_select", "drag_select", "select_all", "column_select",
+        "row_select", "column_width_resize", "double_click_column_resize",
+        "arrowkeys", "right_click_popup_menu", "copy",
+        "find", "ctrl_click_select"
+    )
+    sheet.set_all_cell_sizes_to_text()
+
+
+def format_sets_string_for_cell(sets_str: str) -> str:
+    """Format a sets string to display in a cell."""
+    if sets_str.count("@") < 2:
+        # Unweighted sets or all sets are at the same weight.
+        # Render on one line/return as-is.
+        return sets_str
+    else:
+        # Render each weight on a new line.
+        lines = []
+        split_by_wt = _split_sets_string(sets_str)
+        for i in range(0, len(split_by_wt), 2):
+            setsxreps = split_by_wt[i].replace(" ", "")
+            wt = split_by_wt[i+1].strip()
+            line = f"{setsxreps} @ {wt}"
+            lines.append(line)
+        return "\n".join(lines)
+
+
 class TabTrainingArcs(ttk.Frame):
     """
     This frame is where the user can view the training arcs of a particular
@@ -116,7 +146,7 @@ class TabTrainingArcs(ttk.Frame):
         self.entry_separator.grid(row=1, column=1, sticky="NSEW")
         self.lbl_days.grid(row=1, column=2, sticky="NSEW")
         self.btn_search.grid(row=2, column=0, sticky="NSEW")
-        self.lbl_found_arcs.grid(row=3, column=0, sticky="NSEW")
+        self.lbl_found_arcs.grid(row=3, column=0, columnspan=3, sticky="NSEW")
 
         # Configure the responsive layout for each row and column.
         self.columnconfigure(0, weight=1)
@@ -165,16 +195,16 @@ class TabTrainingArcs(ttk.Frame):
             new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
             new_sheet = Sheet(new_frm,
                               theme="light green",
-                              height=300,
+                              height=150,
                               width=1000,
                               headers=[ds.date for ds in arc.daily_sets_list])
+            new_sheet.set_data(data=[format_sets_string_for_cell(ds.sets_string)
+                                     for ds in arc.daily_sets_list])
+            config_sheet(new_sheet)
 
             new_frm.grid(row=len(arcs)-idx, column=0)
             new_lbl.grid(row=0, column=0)
             new_sheet.grid(row=1, column=0)
 
         pad_frame(self.frm_results)
-
-
-
 
