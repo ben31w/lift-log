@@ -18,3 +18,13 @@ usr/*.db-journal
 
 # log files
 app.log*
+
+# Ignore exported HTML files for now
+html/export*
+
+# Thinking about containerizing the app, but it's a WIP.
+# Desktop GUIs don't seem like they are made for containers.
+# The initial benefit I saw of containerizing is to run the app inside
+# a macOS image. But then how would the user sign into their Notes app
+# within a container? I'm not sure
+Dockerfile
