@@ -64,9 +64,7 @@ class TabImportSets(ttk.Frame):
         main_frame = VerticalScrolledFrame(self, starting_height=starting_height)
         self.content_frame = main_frame.interior
 
-        # Here, we configure padding for this frame, which determines the spacing
-        # between this widget and its parent
-        # tuple is (padx_left, padx_right, pady_top, pady_bottom)
+        # padding = WNES spacing between a widget and its parent
         self.content_frame.configure(padding=(3, 3, 3, 3))
 
         # --- Define widgets ---
@@ -168,17 +166,10 @@ class TabImportSets(ttk.Frame):
         # Each cell in the delete column has a note attached. The note is the SQLite rowid of the import.
         # Most of the columns only contain data, but the delete column contains notes.
         self.sheet.enable_bindings(
-            ("single_select",
-             "row_select",
-             "column_select",
-             "arrowkeys",
-             "right_click_popup_menu",
-             "copy",
-             "select_all",
-             "drag_select",
-             "column_width_resize",
+            "single_select", "row_select", "column_select",
+             "arrowkeys", "right_click_popup_menu", "copy",
+             "select_all", "drag_select", "column_width_resize",
              "double_click_column_resize"
-             )
         )
         self.sheet.extra_bindings("cell_select", self.on_cell_select)
         self.update_sheet()

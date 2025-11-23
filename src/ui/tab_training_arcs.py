@@ -14,6 +14,7 @@ from tksheet import Sheet
 from src.common import pad_frame
 from src.obj.exercise_arc import DailySets, ExerciseArc
 from src.sql_utility import get_daily_sets, get_exercises, _split_sets_string
+from src.ui.vertical_scrolled_frame import VerticalScrolledFrame
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +125,13 @@ class TabTrainingArcs(ttk.Frame):
         super().__init__(parent)
 
         # --- Define widgets ---
-        self.frm_controls = ttk.Frame(self)  # statically sized frame at top of tab
-        self.frm_results = ttk.Frame(self)  # dynamically sized frame where results will appear
+        # This frame contains a vertical scrolled frame, which contains an
+        # interior frame where we must add content.
+        main_frame = VerticalScrolledFrame(self, starting_height=1080)
+        self.content_frame = main_frame.interior
+
+        self.frm_controls = ttk.Frame(self.content_frame)  # statically sized frame at top of tab
+        self.frm_results = ttk.Frame(self.content_frame)  # dynamically sized frame where results will appear
 
         self.lbl_exercise = ttk.Label(self.frm_controls, text="Exercise: ")
         self.combobox = ttk.Combobox(self.frm_controls, width=20)
@@ -137,6 +143,8 @@ class TabTrainingArcs(ttk.Frame):
         self.lbl_found_arcs = ttk.Label(self.frm_controls)  # blank until a search is run
 
         # --- Manage layout of widgets ---
+        main_frame.grid(row=0, column=0, sticky="NSEW")
+
         self.frm_controls.grid(row=0, column=0, sticky="NSEW")
         self.frm_results.grid(row=1, column=0, sticky="NSEW")
 
@@ -148,10 +156,13 @@ class TabTrainingArcs(ttk.Frame):
         self.btn_search.grid(row=2, column=0, sticky="NSEW")
         self.lbl_found_arcs.grid(row=3, column=0, columnspan=3, sticky="NSEW")
 
-        # Configure the responsive layout for each row and column.
+        # Configure rows/cols of each frame to resize.
+        #  The row containing controls should not resize.
+        self.content_frame.columnconfigure(0, weight=1)
+        self.content_frame.rowconfigure(0, weight=0)
+        self.content_frame.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=0)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
 
         # padding = WNES spacing between a widget and its parent
         self.configure(padding=(3, 3, 3, 3))

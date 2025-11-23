@@ -101,6 +101,8 @@ class LiftLog(Tk):
         self.tab_export_sets.grid(row=0, column=0, sticky='NSEW')
         self.tab_training_arcs.grid(row=0, column=0, sticky='NSEW')
 
+        # This Tk widget is configured to resize as the window resizes.
+        #  Any frames placed on it can configure its own row/col resizing.
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 

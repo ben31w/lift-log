@@ -15,6 +15,11 @@ class VerticalScrolledFrame(ttk.Frame):
     You can grid items on to the 'interior' frame of class. Be sure to configure
     any rows or columns you add to the interior frame to keep the layout
     responsive.
+
+    A "bug/feature" of this class:
+    When the window is taller than the frame content, scrolling causes the content
+    to move up and down the window.
+    When the window is shorter than the frame content, scrolling works as expected.
     """
 
     def __init__(self, parent, starting_width=600, starting_height=600, *args, **kw):
