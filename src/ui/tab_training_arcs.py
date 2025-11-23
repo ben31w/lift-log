@@ -96,8 +96,8 @@ def format_sets_string_for_cell(sets_str: str) -> str:
     """Format a sets string to display in a cell."""
     if sets_str.count("@") < 2:
         # Unweighted sets or all sets are at the same weight.
-        # Render on one line/return as-is.
-        return sets_str
+        # Render on one line, but adjust spacing.
+        return sets_str.replace(" ", "").replace("@", " @ ")
     else:
         # Render each weight on a new line.
         lines = []
