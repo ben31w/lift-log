@@ -289,7 +289,7 @@ class TabProgressPlots(ttk.Frame):
         :return:
         """
         fig = Figure(self.figsize)
-        ax = fig.add_subplot(111)
+        ax = fig.add_subplot(111)  # figure has a subplot with 1 row, 1 col, and pos 1
         fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps", fontsize=self.title_size)
 
         if len(list_sets) == 0:

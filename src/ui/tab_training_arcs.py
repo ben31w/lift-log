@@ -9,6 +9,7 @@ from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 import tkinter.font as tkfont
 
+import tksheet
 from tksheet import Sheet
 
 from src.common import pad_frame
@@ -80,20 +81,8 @@ def prune_arcs(arcs: list[ExerciseArc],
     return filtered_arcs
 
 
-def config_sheet(sheet: Sheet) -> None:
-    """Configure a Sheet."""
-    sheet.readonly()
-    sheet.enable_bindings(
-        "single_select", "drag_select", "select_all", "column_select",
-        "row_select", "column_width_resize", "double_click_column_resize",
-        "arrowkeys", "right_click_popup_menu", "copy",
-        "find", "ctrl_click_select"
-    )
-    sheet.set_all_cell_sizes_to_text()
-
-
 def format_sets_string_for_cell(sets_str: str) -> str:
-    """Format a sets string to display in a cell."""
+    """Format a single sets string instance to display in a cell."""
     if sets_str.count("@") < 2:
         # Unweighted sets or all sets are at the same weight.
         # Render on one line, but adjust spacing.
@@ -108,6 +97,59 @@ def format_sets_string_for_cell(sets_str: str) -> str:
             line = f"{setsxreps} @ {wt}"
             lines.append(line)
         return "\n".join(lines)
+
+
+def format_sets_string_list(sets_strings: list[str]) -> tuple[list[str], int]:
+    """
+    Format a list of sets strings to display in a sheet.
+    Each distinct weight within the sets string will appear on its own line.
+    Ex: "10@135, 8@145, 6@155" ->
+        "10 @ 135\n8 @ 145,\n6 @ 155"  (3 lines)
+
+    Also, return the max number of lines among the formatted sets strings.
+
+    :param sets_strings: list of sets_strings
+    :return: list of formatted sets strings AND max number of lines
+    """
+    formatted_strings = []
+    max_lines = 1
+
+    for sets_string in sets_strings:
+        formatted = format_sets_string_for_cell(sets_string)
+        lines = formatted.count("\n") + 1
+        formatted_strings.append(formatted)
+        max_lines = max(max_lines, lines)
+
+    return formatted_strings, max_lines
+
+
+def create_arc_sheet(parent_frame: ttk.Frame, arc: ExerciseArc) -> tksheet.Sheet:
+    """Create a Tksheet for the given training arc."""
+    new_sheet = Sheet(parent_frame,
+                      theme="light green",
+                      height=150,
+                      width=1000,
+                      show_y_scrollbar=False,
+                      headers=[ds.date for ds in arc.daily_sets_list])
+
+    formatted_sets_strings, max_lines = format_sets_string_list([ds.sets_string for ds in arc.daily_sets_list])
+    new_sheet.set_data(data=formatted_sets_strings)
+
+    # (not sure if this is worth it)
+    # Resize sheet based on number of lines.
+    # 35 = height of header, 20 = height of x-scrollbar
+    # new_sheet.config(height=35 + 25 * max_lines + 20)
+
+    new_sheet.readonly()
+    new_sheet.enable_bindings(
+        "single_select", "drag_select", "select_all", "column_select",
+        "row_select", "column_width_resize", "double_click_column_resize",
+        "arrowkeys", "right_click_popup_menu", "copy",
+        "find", "ctrl_click_select"
+    )
+    new_sheet.set_all_cell_sizes_to_text()
+
+    return new_sheet
 
 
 class TabTrainingArcs(ttk.Frame):
@@ -201,17 +243,10 @@ class TabTrainingArcs(ttk.Frame):
             for i in arc.daily_sets_list:
                 logger.info(i)
 
-            # Create a frame to store a label and a Tksheet.
+            # Create a frame to store a label, a subframe (with two plots), and a Tksheet.
             new_frm = ttk.Frame(self.frm_results)
             new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
-            new_sheet = Sheet(new_frm,
-                              theme="light green",
-                              height=150,
-                              width=1000,
-                              headers=[ds.date for ds in arc.daily_sets_list])
-            new_sheet.set_data(data=[format_sets_string_for_cell(ds.sets_string)
-                                     for ds in arc.daily_sets_list])
-            config_sheet(new_sheet)
+            new_sheet = create_arc_sheet(new_frm, arc)
 
             new_frm.grid(row=len(arcs)-idx, column=0)
             new_lbl.grid(row=0, column=0)
