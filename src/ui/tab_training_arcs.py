@@ -1,7 +1,7 @@
 """
 All functions and classes related to the 'Training Arcs' tab.
 """
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import logging
 import webbrowser
 from pathlib import Path
@@ -9,12 +9,19 @@ from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 import tkinter.font as tkfont
 
+import matplotlib
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.dates as mdates
+import mplcursors
+from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
+from tkcalendar import DateEntry
 import tksheet
 from tksheet import Sheet
 
 from src.common import pad_frame
 from src.obj.exercise_arc import DailySets, ExerciseArc
-from src.sql_utility import get_daily_sets, get_exercises, _split_sets_string
+from src.sql_utility import get_daily_sets, get_exercise_sets_dict, get_exercises, _split_sets_string
 from src.ui.vertical_scrolled_frame import VerticalScrolledFrame
 
 logger = logging.getLogger(__name__)
@@ -210,10 +217,21 @@ class TabTrainingArcs(ttk.Frame):
         self.configure(padding=(3, 3, 3, 3))
         pad_frame(self.frm_controls)
 
+        # --- Important attributes ---
+        self.figsize = (6.4, 4.8)  # temporary
+        self.title_size = 16
+        self.tick_size = 9.6
+
+        # TODO it would be nice if this were shared with the progress_plots variable,
+        #  since they are intended to always be identical... but I'm having a hard
+        #  time creating a variable that is updated in one file (sql_utility)
+        #  and accessed in others (the frames).
+        self.esd = {}  # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
         self.update_exercises()
 
     def update_exercises(self) -> None:
-        """Update list of exercises in the combobox."""
+        """Update the exercises-sets dictionary and the combobox."""
+        self.esd = get_exercise_sets_dict()
         self.combobox["values"] = get_exercises()
 
     def update_arcs_results(self) -> None:
@@ -246,11 +264,81 @@ class TabTrainingArcs(ttk.Frame):
             # Create a frame to store a label, a subframe (with two plots), and a Tksheet.
             new_frm = ttk.Frame(self.frm_results)
             new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
+            new_sub_frm = self.create_frame_for_plots(new_frm, arc)
             new_sheet = create_arc_sheet(new_frm, arc)
 
             new_frm.grid(row=len(arcs)-idx, column=0)
             new_lbl.grid(row=0, column=0)
             new_sheet.grid(row=1, column=0)
+            new_sub_frm.grid(row=2, column=0)
 
         pad_frame(self.frm_results)
 
+    def create_frame_for_plots(self, parent_frame: ttk.Frame, arc: ExerciseArc):
+        """Create frame that displays plots for given training arc."""
+        frm = ttk.Frame(parent_frame)
+
+        selected_exercise = self.combobox.get()
+        if selected_exercise == '':
+            return frm
+
+        # daily_sets items within the arc are ordered by date.
+        start_date = arc.daily_sets_list[0].date
+        end_date = arc.daily_sets_list[-1].date
+        date_filtered_sets = [s for s in self.esd[selected_exercise] if
+                              start_date <= s.date <= end_date]
+
+        # Get sets of 1-9 and 10+ reps.
+        # TODO it would be cool if we got the rep ranges more dynamically/intelligently
+        sets_1_9 = [s for s in date_filtered_sets if s.reps <= 9]
+        sets_10_up = [s for s in date_filtered_sets if s.reps >= 10]
+
+        self.add_plot(frm, sets_1_9, min_reps=1, max_reps=9, start_date=start_date, end_date=end_date, cmap=matplotlib.colormaps['viridis'], row=0, col=0)
+        self.add_plot(frm, sets_10_up, min_reps=10, max_reps=20, start_date=start_date, end_date=end_date, cmap=matplotlib.colormaps['viridis'], row=0, col=1)
+
+        return frm
+
+    def add_plot(self, parent_frame: ttk.Frame, list_sets, min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, row : int, col : int):
+        """Add plot to a frame"""
+        fig = Figure(self.figsize)
+        ax = fig.add_subplot(111)  # figure has a subplot with 1 row, 1 col, and pos 1
+        if max_reps is None:
+            max_reps = ""
+        fig.suptitle(f"Load Over Time for Sets of {min_reps}-{max_reps} Reps", fontsize=self.title_size)
+
+        if len(list_sets) == 0:
+            # Currently displays empty graph with weird axis ticks, probably not the behavior we want
+            x, y, colors = [], [], []
+        else:
+            x = [s.date for s in list_sets]
+            y = [s.weight for s in list_sets]
+            colors = [s.reps for s in list_sets]
+
+        # Matplotlib attempts to "automatically expand" the axis limits if they
+        # are the same. This isn't the behavior we want, so there is a check
+        # for identical axis limits.
+        if start_date == end_date:
+            start_date = start_date - timedelta(days=1)
+            end_date = end_date + timedelta(days=1)
+        # We want 10 ticks on the x-axis. Calculate the interval needed for 10 ticks
+        interval = int((end_date - start_date).days / 10) + 1
+        ax.set_xlim(left=start_date, right=end_date)
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%y-%m-%d'))
+
+        # Rotates and right-aligns the x labels so they don't crowd each other.
+        for label in ax.get_xticklabels(which='major'):
+            label.set(rotation=20, horizontalalignment='right')
+            label.set_fontsize(self.tick_size)
+        for label in ax.get_yticklabels(which='major'):
+            label.set_fontsize(self.tick_size)
+        fig.subplots_adjust()
+
+        # Create scatter, and attach it to the canvas
+        scatter = ax.scatter(x, y, c=colors, cmap=cmap, marker='o')
+        mplcursors.cursor(scatter)
+        fig.colorbar(scatter, format="%d", ticks=list(range(min_reps, max_reps + 1)))
+        canvas = FigureCanvasTkAgg(fig, parent_frame)
+        canvas.draw()
+        canvas.get_tk_widget().grid(row=row, column=col, sticky='NSEW')
