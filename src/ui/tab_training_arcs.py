@@ -134,18 +134,13 @@ def create_arc_sheet(parent_frame: ttk.Frame, arc: ExerciseArc) -> tksheet.Sheet
     """Create a Tksheet for the given training arc."""
     new_sheet = Sheet(parent_frame,
                       theme="light green",
-                      height=150,
-                      width=1000,
+                      # height=200,
+                      width=1680,
                       show_y_scrollbar=False,
                       headers=[ds.date for ds in arc.daily_sets_list])
 
     formatted_sets_strings, max_lines = format_sets_string_list([ds.sets_string for ds in arc.daily_sets_list])
     new_sheet.set_data(data=formatted_sets_strings)
-
-    # (not sure if this is worth it)
-    # Resize sheet based on number of lines.
-    # 35 = height of header, 20 = height of x-scrollbar
-    # new_sheet.config(height=35 + 25 * max_lines + 20)
 
     new_sheet.readonly()
     new_sheet.enable_bindings(
@@ -155,6 +150,15 @@ def create_arc_sheet(parent_frame: ttk.Frame, arc: ExerciseArc) -> tksheet.Sheet
         "find", "ctrl_click_select"
     )
     new_sheet.set_all_cell_sizes_to_text()
+
+    # Resize sheet based on number of lines.
+    # 1 weight = 1 line of text
+    # Each line is 25px. Add 100px on top of that to account for header (35px),
+    # x-scrollbar (25 px), and extra space (40px).
+    # Even though it looks unaesthetic, the extra space provides better
+    # UX. When the tksheet is too short, you can vertically scroll it, which
+    # we want to prevent.
+    new_sheet.config(height=25 * max_lines + 100)
 
     return new_sheet
 
@@ -258,8 +262,6 @@ class TabTrainingArcs(ttk.Frame):
         # Display new results
         for idx, arc in enumerate(arcs):
             logger.info(f"\nARC {idx}")
-            for i in arc.daily_sets_list:
-                logger.info(i)
 
             # Create a frame to store a label, a subframe (with two plots), and a Tksheet.
             new_frm = ttk.Frame(self.frm_results)
