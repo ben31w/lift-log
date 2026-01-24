@@ -3,6 +3,7 @@ All functions and classes related to the 'View & Edit Sets' tab.
 """
 import datetime
 import logging
+import tkinter.messagebox
 from tkinter import *
 from tkinter import ttk
 
@@ -20,11 +21,12 @@ DATE_COL = 0
 EXERCISE_COL = 1
 SETS_STRING_COL = 2
 COMMENTS_COL = 3
-VALID_COL = 4
-LINE_COL = 5
-IMPORT_NAME_COL = 6
-IMPORT_TIME_COL = 7
-DELETE_COL = 8
+ORDER_COL = 4
+VALID_COL = 5
+LINE_COL = 6
+IMPORT_NAME_COL = 7
+IMPORT_TIME_COL = 8
+DELETE_COL = 9
 
 class TabViewEditSets(ttk.Frame):
     """
@@ -42,9 +44,12 @@ class TabViewEditSets(ttk.Frame):
 
         # -- Important attributes --
         # When the user is done editing a cell, track the following fields:
-        # (date, exercise, sets_string, comments, rowid)
+        # (date, exercise, sets_string, comments, idx, rowid)
         # and add them to this list. When the  user clicks SAVE, update the
         # SQLite data to match this list.
+        # TODO it would make more sense/be easier to maintain if we stored
+        #  the fields in a dict instead of a tuple. A tuple was chosen for easy
+        #  SQLite insertion
         self.edited_daily_sets = []
         # When the user deletes a daily sets items, track the following fields:
         # (rowid, ) [storing as tuple makes it easier to executemany in SQLite3]
@@ -61,7 +66,7 @@ class TabViewEditSets(ttk.Frame):
                            theme="light green",
                            height=980,
                            width=1680,
-                           headers=["Date", "Exercise", "Sets", "Comments",
+                           headers=["Date", "Exercise", "Sets", "Comments", "Order",  # Order = idx
                                     "Valid*", "Line*", "Import*", "Import Time*", "Delete*"])
 
         # sub-self-level
@@ -162,6 +167,8 @@ class TabViewEditSets(ttk.Frame):
         pad_frame(self.frm_radiobuttons)
         self.selected_comments.set(ANY)
         self.selected_valid.set(ANY)
+        # This spoofs the 'combobox selected event' to force a refresh.
+        self.combobox.event_generate("<<ComboboxSelected>>")
         # Here, we configure padding for this frame, which determines the spacing
         # between this widget and its parent
         self.configure(padding=(3, 3, 3, 3))
@@ -172,13 +179,13 @@ class TabViewEditSets(ttk.Frame):
         self.sheet.readonly_columns([VALID_COL, LINE_COL, IMPORT_NAME_COL, IMPORT_TIME_COL, DELETE_COL])
 
         self.sheet.enable_bindings(
-            ("single_select", "drag_select", "select_all", "column_select",
+            "single_select", "drag_select", "select_all", "column_select",
              "row_select", "column_width_resize", "double_click_column_resize",
              "arrowkeys", "right_click_popup_menu", "sort_rows", "copy", "cut",
-             "paste", "delete", "undo",
-             "edit_cell", # only certain columns are editable b/c of readonly_columns
-             "find", "replace", "ctrl_click_select"
-             )
+             "paste", "delete", "undo", "find", "replace", "ctrl_click_select",
+             # Enable the binding to edit cells, but note, not all cells in
+             #  readonly columns are not editable
+             "edit_cell",
         )
         self.sheet.extra_bindings("delete", self.track_edit)
         self.sheet.extra_bindings("end_ctrl_x", self.track_edit)
@@ -217,9 +224,8 @@ class TabViewEditSets(ttk.Frame):
         comments = self.selected_comments.get()
         valid = self.selected_valid.get()
 
-        # Update data in the sheet.
-        total_rows = self.sheet.get_total_rows()
-        self.sheet.delete_rows(iter(range(total_rows)))
+        # Clear existing data, and set new data.
+        self.sheet.delete_rows(iter(range(self.sheet.get_total_rows())))
         self.sheet.set_data(data=self._get_sheet_data(exercise, start_date, end_date, comments, valid))
 
         # Restyle the sheet.
@@ -235,8 +241,8 @@ class TabViewEditSets(ttk.Frame):
         sheet_data = []
         items = get_daily_sets_with_imports(exercise=exercise, start_date=start_date, end_date=end_date, comments=comments, valid=valid)
         for i in range(len(items)):
-            sets_rowid, sets_date, sets_exercise, sets_string, comments, is_valid, line, imprt_name, imprt_date_time = items[i]
-            sheet_data.append([sets_date, sets_exercise, sets_string, comments, is_valid, line, imprt_name, imprt_date_time, 'Delete'])
+            sets_rowid, sets_date, sets_exercise, sets_string, comments, idx, is_valid, line, imprt_name, imprt_date_time = items[i]
+            sheet_data.append([sets_date, sets_exercise, sets_string, comments, idx, is_valid, line, imprt_name, imprt_date_time, 'Delete'])
             # Update notes: store rowid in the date column
             self.sheet.note(i, DATE_COL, note=sets_rowid)
         return sheet_data
@@ -248,7 +254,7 @@ class TabViewEditSets(ttk.Frame):
 
         # For any row the user has staged for deletion, color the text red.
         # For any row where the user has staged an edit, color the text green.
-        edited_rowids = [tup[4] for tup in self.edited_daily_sets]
+        edited_rowids = [tup[5] for tup in self.edited_daily_sets]
         logger.info(f"edited rowids: {edited_rowids}")
         for r in range(self.sheet.get_total_rows()):
             rowid = self.sheet.props(r, DATE_COL, "note")['note']
@@ -283,8 +289,9 @@ class TabViewEditSets(ttk.Frame):
         new_exercise = self.sheet.get_cell_data(content.row, EXERCISE_COL)
         new_sets_string = self.sheet.get_cell_data(content.row, SETS_STRING_COL)
         new_comments = self.sheet.get_cell_data(content.row, COMMENTS_COL)
+        new_order = self.sheet.get_cell_data(content.row, ORDER_COL)
         rowid = self.sheet.props(content.row, DATE_COL, "note")['note']
-        t = (new_date, new_exercise, new_sets_string, new_comments, rowid)
+        t = (new_date, new_exercise, new_sets_string, new_comments, new_order, rowid)
 
         self.edited_daily_sets.append(t)
 
@@ -294,7 +301,13 @@ class TabViewEditSets(ttk.Frame):
     def save_changes(self):
         """Update edited and deleted rows in SQLite."""
         # Update all items that have a tracked edit
-        update_user_edited_daily_sets(self.edited_daily_sets)
+        try:
+            update_user_edited_daily_sets(self.edited_daily_sets)
+        except ValueError as e:
+            tkinter.messagebox.showerror("Error", e.args[0])
+            # TODO #24 For now, clear all tracked edits when an error is detected.
+            # This is poor UX. The app should preserve the user's edits
+            #return
 
         # Delete all items that have been staged for deletion
         delete_daily_sets(self.deleted_daily_sets)

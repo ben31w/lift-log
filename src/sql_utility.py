@@ -55,9 +55,9 @@ def create_tables():
     #             "apple notes, YYYY-MM-DD to YYYY-MM-DD"
     cur.execute("""
             CREATE TABLE IF NOT EXISTS import(
-                date_time TEXT,
-                file_hash TEXT,
-                compressed_file_content BLOB,
+                date_time TEXT NOT NULL,
+                file_hash TEXT NOT NULL,
+                compressed_file_content BLOB NOT NULL,
                 name TEXT
             )
         """)
@@ -65,25 +65,32 @@ def create_tables():
     # daily_sets
     # This represents all the sets a user has logged for a particular exercise on a particular date.
     # Ex: all bench press sets logged on 21 June 2025.
-    #     -> ('bb bench', '2025-06-21', '2x8@135, 2x6@145', 1)
+    #     -> ('bb bench', '2025-06-21', '2x8@135, 2x6@145', 'failure last set', 1,        '<li>2 x 8 @ 135, 2x6 @ 145</li>',  2,     1)
+    #          exercise    date          sets_string        comments            is_valid  line                                idx  import_id
     #
     # fields
     # - exercise
-    # - date: stored in SQLite as TEXT (YYYY-MM-DD).
-    # - sets_string: parsed and sanitized from the raw line
-    # - comments: optional
-    # - is_valid: boolean (0/1), but SQLite stores booleans as INTEGER
-    # - line: the raw line in the file where this daily_sets item was detected
-    # - import_id: daily_sets items are added through importing, so they store a
-    #   reference to an import item
+    # - date:        stored in SQLite as TEXT (YYYY-MM-DD).
+    # - sets_string: parsed and sanitized from an input (HTML file line).
+    #                Note, just because it's sanitized doesn't mean it's valid.
+    # - comments:    optional
+    # - is_valid:    boolean (0/1), but SQLite stores booleans as INTEGER
+    # - line:        the raw line in the file where this daily_sets item was detected (before sanitization)
+    # - idx:         the order in which this exercise was performed in regard to
+    #                other exercises on that day. 1 (first), 2 (second), etc.
+    #                For simplicity, the user can edit the idx to anything.
+    #                TODO in the future, restrict having multiple items with the same date and idx.
+    # - import_id:   daily_sets items are added through importing, so they store a
+    #                reference to an import item. optional, in case I add the ability to log sets without an import
     cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_sets(
-            exercise TEXT,
-            date TEXT,
-            sets_string TEXT,
+            exercise TEXT NOT NULL,
+            date TEXT NOT NULL,
+            sets_string TEXT NOT NULL,
             comments TEXT,
-            is_valid INTEGER,
-            line TEXT,
+            is_valid INTEGER NOT NULL,
+            line TEXT NOT NULL,
+            idx INTEGER,
             import_id INTEGER,
             FOREIGN KEY(import_id) REFERENCES import(ROWID)
         )
@@ -175,11 +182,12 @@ def get_daily_sets_with_imports(exercise: str = ALL,
 
     result = cur.execute(f"""
         SELECT daily_sets.ROWID, daily_sets.date, daily_sets.exercise, daily_sets.sets_string, 
-               daily_sets.comments, daily_sets.is_valid, daily_sets.line, import.name, import.date_time 
+               daily_sets.comments, daily_sets.idx, daily_sets.is_valid, daily_sets.line, 
+               import.name, import.date_time 
         FROM daily_sets 
         FULL OUTER JOIN import ON daily_sets.import_id = import.ROWID
         {where_str}
-        ORDER BY daily_sets.date DESC
+        ORDER BY daily_sets.date DESC, daily_sets.idx
     """)
     items = result.fetchall()  # fetch list of tuples
     cur.close()
@@ -626,6 +634,7 @@ def import_sets_via_html(html_filepath:str,
     # Parse the HTML file, and get a list of exercise sets to insert.
     with open(html_filepath, 'r') as f:
         parsing_exercises = False
+        idx = 1  # track the idx each exercise was performed on each date.
 
         for line_num, line in enumerate(f.readlines(), start=1):
             line = line.lower().strip()
@@ -647,6 +656,9 @@ def import_sets_via_html(html_filepath:str,
                             year += 2000
                         curr_date = datetime.date(year, month, day)
                         _log_import_msg(f"Current date: {curr_date}", text_widget, DEBUG)
+
+                        # Start of a new date: reset idx
+                        idx = 1
                     except ValueError:
                         # TODO if we fail to parse a date from the h2 tag, should
                         #  the sets that follow be imported at all?
@@ -657,7 +669,7 @@ def import_sets_via_html(html_filepath:str,
 
                 # Lines with exercises are structured like this: "exercise : sets"
                 #   more specifically:
-                #     [<li>] exercise: {( {SetsxReps} | {Reps} )@weight}[, comments] [</li>]
+                #     [<li>|<div>] exercise: {( {SetsxReps} | {Reps} )@weight}[, comments] [</li>|</div>]]
                 #     Ex: <li>Rear delt rows SS1 : 3x15 at 12.5<br></li>
                 elif line.__contains__(':'):
                     _log_import_msg(f"(line {line_num}) {line}", text_widget, DEBUG)
@@ -677,9 +689,11 @@ def import_sets_via_html(html_filepath:str,
                         if not is_valid:
                             _log_import_msg(f"Invalid sets string found on line {line_num}: '{line}'  |  sets_str: {sets_str}", text_widget, WARNING)
 
-                        daily_sets_item = (exercise, curr_date, sets_str, is_valid, comments, line)
+                        # Create tuple of daily_sets item for easy insert into SQLite
+                        daily_sets_item = (exercise, curr_date, sets_str, is_valid, comments, line, idx)
                         _log_import_msg(f'  daily_sets found: {daily_sets_item}', text_widget, DEBUG)
                         daily_sets_list.append(daily_sets_item)
+                        idx += 1
 
     cur.execute("BEGIN TRANSACTION")
 
@@ -689,8 +703,11 @@ def import_sets_via_html(html_filepath:str,
         cur.execute(f"INSERT INTO import(date_time, file_hash, compressed_file_content) VALUES(DATETIME(), ?, ?)", (file_hash, compressed_content))
 
         # Insert records into 'daily_sets' table
-        import_id = cur.lastrowid  # gets the most recent import id, TODO will this work in all cases?
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, line, import_id) VALUES (?, ?, ?, ?, ?, ?, {import_id})", daily_sets_list)
+        # We get the id of the record that was just inserted into the import table.
+        # TODO This works for now, but I'm not sure if this is the most reliable way to get the id.
+        import_id = cur.lastrowid
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, line, idx, import_id) "
+                        f"VALUES (?, ?, ?, ?, ?, ?, ?, {import_id})", daily_sets_list)
 
         # Now, update the 'name' field of our new 'import' record.
         min_date = cur.execute(f"SELECT MIN(date) FROM daily_sets WHERE import_id = {import_id}").fetchone()[0]
@@ -705,7 +722,8 @@ def import_sets_via_html(html_filepath:str,
     else:
         # No new record will be inserted into 'import' table.
         # Insert records into 'daily_sets' table with the provided import_id
-        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, line, import_id) VALUES (?, ?, ?, ?, ?, ?, {existing_import_id})", daily_sets_list)
+        cur.executemany(f"INSERT INTO daily_sets(exercise, date, sets_string, is_valid, comments, line, idx, import_id) "
+                        f"VALUES (?, ?, ?, ?, ?, ?, ?, {existing_import_id})", daily_sets_list)
 
     _log_import_msg("Done importing.", text_widget)
     if text_widget is not None:
@@ -729,6 +747,8 @@ def _is_sets_string_valid(sets_str : str) -> bool:
     The logic that reads SQLite and converts daily_sets items to
     ExerciseSets objects performs additional checks for now.
     """
+    # TODO #25 this sets validation method could use some improvement.
+    #  simply entering "hello" is considered a valid sets string.
     if '@' not in sets_str:
         return True
 
@@ -794,28 +814,43 @@ def update_daily_sets_to_alias():
         import_sets_via_html(html_filepath=file_to_write, existing_import_id=imprt_id)
 
 
-def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, int]]):
+def update_user_edited_daily_sets(edited_rows:list[tuple[str, str, str, str, str, int]]):
     """
     Given list of edits to make in SQLite, edit and validate them.
     edit tuple format:
     (date, exercise, sets_string, comments, rowid)
     """
-    con = sqlite3.connect(SQLITE_FILE)
-    cur = con.cursor()
-
     # Validation: add this as an extra item to every tuple in edited_rows
     # TODO #18 resolve exercise to alias?
+    # TODO #22 As of now, we allow the user to insert invalid dates and sets strings...
+    # we simply mark the is_valid bit to 0 in SQLite.
     edited_rows_validated = []
     for edit in edited_rows:
-        date, exercise, sets_string, comments, rowid = edit
+        date, exercise, sets_string, comments, idx, rowid = edit
         is_valid = _is_date_valid(date) and _is_sets_string_valid(sets_string)
-        new_t = (date, exercise, sets_string, comments, is_valid, rowid)
+
+        # TODO #23 We don't allow the user to insert non-integers in the idx (order) field.
+        # We still allow duplicate integers, out-of-order integers (ex: 2, 3,
+        # with no 1), so the error checking could certainly be more robust.
+        try:
+            idx = int(idx)
+            if idx <= 0:
+                raise ValueError
+        except ValueError:
+            error_msg = ("User tried to enter a string for idx. Must be an int. "
+                         f"date: {date}, exercise: {exercise}, idx: {idx}, rowid: {rowid}")
+            raise ValueError(error_msg)
+
+        new_t = (date, exercise, sets_string, comments, idx, is_valid, rowid)
         edited_rows_validated.append(new_t)
+
+    con = sqlite3.connect(SQLITE_FILE)
+    cur = con.cursor()
 
     # Update in SQLite
     cur.executemany(f"""
         UPDATE daily_sets
-        SET date = ?, exercise = ?, sets_string = ?, comments = ?, is_valid = ?
+        SET date = ?, exercise = ?, sets_string = ?, comments = ?, idx = ?, is_valid = ?
         WHERE ROWID = ?
     """, edited_rows_validated)
 
