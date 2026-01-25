@@ -21,6 +21,7 @@ from tksheet import Sheet
 
 from src.common import pad_frame
 from src.obj.exercise_arc import DailySets, ExerciseArc
+from src.obj.exercise_set import ExerciseSet
 from src.sql_utility import get_daily_sets, get_exercise_sets_dict, get_exercises, _split_sets_string
 from src.ui.vertical_scrolled_frame import VerticalScrolledFrame
 
@@ -233,75 +234,31 @@ class TabTrainingArcs(ttk.Frame):
         self.esd = {}  # ESD = Exercises-Sets Dictionary. Maps 'exercise' -> [ExerciseSet]
         self.update_exercises()
 
-    def update_exercises(self) -> None:
-        """Update the exercises-sets dictionary and the combobox."""
-        self.esd = get_exercise_sets_dict()
-        self.combobox["values"] = get_exercises()
-
-    def update_arcs_results(self) -> None:
+    def add_plot(self,
+                 parent_frame: ttk.Frame,
+                 list_sets : list[ExerciseSet],
+                 min_reps : int,
+                 max_reps : int,
+                 start_date : date,
+                 end_date : date,
+                 cmap : Colormap,
+                 row : int,
+                 col : int) -> None:
         """
-        Search for training arcs with the selected exercise and separator.
-        Update the results frame.
+        Generate MatPlotLib plot from given parameters. Add it to a given Frame
+        at the given coordinates.
+        :param parent_frame: Frame to add the plot to.
+        :param list_sets: list of ExerciseSet objects that will be filtered
+            to produce plot
+        :param min_reps: minimum reps filter
+        :param max_reps: maximum reps filter
+        :param start_date: start date filter
+        :param end_date: end date filter
+        :param cmap: MatPlotLib colormap to generate plot
+        :param row: the row within parent_frame to grid the plot
+        :param col: the column within parent_frame to grid the plot
+        :return:
         """
-        # Get training arcs from current selection
-        exercise = self.combobox.get()
-        try:
-            separator = int(self.entry_separator.get())
-            if separator < 1:
-                raise ValueError
-        except ValueError:
-            self.lbl_found_arcs.config(text="Separator must be a positive integer.")
-            return
-        arcs = get_arcs(exercise, separator)
-        self.lbl_found_arcs.config(text=f"Found {len(arcs)} arcs.")
-
-        # Clear current results
-        for w in self.frm_results.winfo_children():
-            w.destroy()
-
-        # Display new results
-        for idx, arc in enumerate(arcs):
-            logger.info(f"\nARC {idx}")
-
-            # Create a frame to store a label, a subframe (with two plots), and a Tksheet.
-            new_frm = ttk.Frame(self.frm_results)
-            new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
-            new_sub_frm = self.create_frame_for_plots(new_frm, arc)
-            new_sheet = create_arc_sheet(new_frm, arc)
-
-            new_frm.grid(row=len(arcs)-idx, column=0)
-            new_lbl.grid(row=0, column=0)
-            new_sheet.grid(row=1, column=0)
-            new_sub_frm.grid(row=2, column=0)
-
-        pad_frame(self.frm_results)
-
-    def create_frame_for_plots(self, parent_frame: ttk.Frame, arc: ExerciseArc):
-        """Create frame that displays plots for given training arc."""
-        frm = ttk.Frame(parent_frame)
-
-        selected_exercise = self.combobox.get()
-        if selected_exercise == '':
-            return frm
-
-        # daily_sets items within the arc are ordered by date.
-        start_date = arc.daily_sets_list[0].date
-        end_date = arc.daily_sets_list[-1].date
-        date_filtered_sets = [s for s in self.esd[selected_exercise] if
-                              start_date <= s.date <= end_date]
-
-        # Get sets of 1-9 and 10+ reps.
-        # TODO it would be cool if we got the rep ranges more dynamically/intelligently
-        sets_1_9 = [s for s in date_filtered_sets if s.reps <= 9]
-        sets_10_up = [s for s in date_filtered_sets if s.reps >= 10]
-
-        self.add_plot(frm, sets_1_9, min_reps=1, max_reps=9, start_date=start_date, end_date=end_date, cmap=matplotlib.colormaps['viridis'], row=0, col=0)
-        self.add_plot(frm, sets_10_up, min_reps=10, max_reps=20, start_date=start_date, end_date=end_date, cmap=matplotlib.colormaps['viridis'], row=0, col=1)
-
-        return frm
-
-    def add_plot(self, parent_frame: ttk.Frame, list_sets, min_reps : int, max_reps : int, start_date : date, end_date : date, cmap : Colormap, row : int, col : int):
-        """Add plot to a frame"""
         fig = Figure(self.figsize)
         ax = fig.add_subplot(111)  # figure has a subplot with 1 row, 1 col, and pos 1
         if max_reps is None:
@@ -344,3 +301,72 @@ class TabTrainingArcs(ttk.Frame):
         canvas = FigureCanvasTkAgg(fig, parent_frame)
         canvas.draw()
         canvas.get_tk_widget().grid(row=row, column=col, sticky='NSEW')
+
+    def create_frame_for_plots(self,
+                               parent_frame: ttk.Frame,
+                               arc: ExerciseArc) -> ttk.Frame:
+        """Create frame that displays plots for given training arc."""
+        frm = ttk.Frame(parent_frame)
+
+        selected_exercise = self.combobox.get()
+        if selected_exercise == '':
+            return frm
+
+        # daily_sets items within the arc are ordered by date.
+        start_date = arc.daily_sets_list[0].date
+        end_date = arc.daily_sets_list[-1].date
+        date_filtered_sets = [s for s in self.esd[selected_exercise] if
+                              start_date <= s.date <= end_date]
+
+        # Get sets of 1-9 and 10+ reps.
+        # TODO it would be cool if we got the rep ranges more dynamically/intelligently
+        sets_1_9 = [s for s in date_filtered_sets if s.reps <= 9]
+        sets_10_up = [s for s in date_filtered_sets if s.reps >= 10]
+
+        self.add_plot(frm, sets_1_9, min_reps=1, max_reps=9, start_date=start_date, end_date=end_date, cmap=matplotlib.colormaps['viridis'], row=0, col=0)
+        self.add_plot(frm, sets_10_up, min_reps=10, max_reps=20, start_date=start_date, end_date=end_date, cmap=matplotlib.colormaps['viridis'], row=0, col=1)
+
+        return frm
+
+    def update_exercises(self) -> None:
+        """Update the exercises-sets dictionary and the combobox."""
+        self.esd = get_exercise_sets_dict()
+        self.combobox["values"] = get_exercises()
+
+    def update_arcs_results(self) -> None:
+        """
+        Search for training arcs with the selected exercise and separator.
+        Update the results frame.
+        """
+        # Get training arcs from current selection
+        exercise = self.combobox.get()
+        try:
+            separator = int(self.entry_separator.get())
+            if separator < 1:
+                raise ValueError
+        except ValueError:
+            self.lbl_found_arcs.config(text="Separator must be a positive integer.")
+            return
+        arcs = get_arcs(exercise, separator)
+        self.lbl_found_arcs.config(text=f"Found {len(arcs)} arcs.")
+
+        # Clear current results
+        for w in self.frm_results.winfo_children():
+            w.destroy()
+
+        # Display new results
+        for idx, arc in enumerate(arcs):
+            logger.info(f"\nARC {idx}")
+
+            # Create a frame to store a label, a subframe (with two plots), and a Tksheet.
+            new_frm = ttk.Frame(self.frm_results)
+            new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
+            new_sub_frm = self.create_frame_for_plots(new_frm, arc)
+            new_sheet = create_arc_sheet(new_frm, arc)
+
+            new_frm.grid(row=len(arcs)-idx, column=0)
+            new_lbl.grid(row=0, column=0)
+            new_sheet.grid(row=1, column=0)
+            new_sub_frm.grid(row=2, column=0)
+
+        pad_frame(self.frm_results)
