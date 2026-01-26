@@ -269,8 +269,6 @@ class TabTrainingArcs(ttk.Frame):
             # Currently displays empty graph with weird axis ticks, probably not the behavior we want
             x, y, colors = [], [], []
         else:
-            # TODO #26 some additional filtering should be done so the app doesn't
-            #  plot unnecessary sets. 2x6,8 -> should only plot the 8.
             x = [s.date for s in list_sets]
             y = [s.weight for s in list_sets]
             colors = [s.reps for s in list_sets]
@@ -314,7 +312,8 @@ class TabTrainingArcs(ttk.Frame):
         if selected_exercise == '':
             return frm
 
-        # daily_sets items within the arc are ordered by date.
+        # daily_sets items within the arc are ordered by date, based on the way
+        # the arc is constructed.
         start_date = arc.daily_sets_list[0].date
         end_date = arc.daily_sets_list[-1].date
         date_filtered_sets = [s for s in self.esd[selected_exercise] if

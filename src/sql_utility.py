@@ -284,6 +284,11 @@ def get_exercise_sets_dict():
     objects in Python, and build a dictionary that maps exercises to
     ExerciseSet objects.
 
+    !!!
+    If the user logged multiple reps at the same WT, return only the max reps!!
+    For example, 7,8@150 -> 8@150.  8,7@150 -> 8@150
+    For plotting purposes, it's pointless to track the set of 7.
+
     Example conversion from daily_sets to ExerciseSet objects (simplified):
     '2x8@135,6,5@145' -> 8@135, 8@135, 6@145, 5@145
 
@@ -322,6 +327,12 @@ def get_exercise_sets_dict():
 def get_exercise_sets_from_daily_sets(daily_sets_item : tuple [str, str, str]):
     """
     Given a daily_sets item from SQLite, return a list of ExerciseSet objects.
+
+    !!!
+    If the user logged multiple reps at the same WT, return only the max reps!!
+    For example, 7,8@150 -> 8@150.  8,7@150 -> 8@150
+    For plotting purposes, it's pointless to track the set of 7.
+
     :return: all ExerciseSet objects that can be parsed from the daily_set item.
     """
     exercise, date_str, sets_str = daily_sets_item
@@ -682,7 +693,8 @@ def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets
     :param weight:                          example: 90.0
     :param the_sets:                        example: '2x10,~9'
     :param date_of_sets:                    example: 2025/05/27
-    :return: list of ExerciseSet objects.   example: [(bb bench, 2025/05/27, 10@90.0), (bb bench, 2025/05/27, 10@90.0), (bb bench, 2025/05/27, ~9@90.0)]
+    :return: list of ExerciseSet objects.   example:
+        [(bb bench, 2025/05/27, 10@90.0)]
     """
     exercise_sets = []
 
@@ -718,7 +730,12 @@ def _get_exercise_sets(exercise: str, weight: float, the_sets: str, date_of_sets
             logger.debug(f"    {s}")
             exercise_sets.append(s)
 
-    return exercise_sets
+    # it doesn't make sense to return a list anymore, but I'm keeping it this
+    # way so other functions don't break.
+    # TODO be efficient, return individual ExerciseSet? Very low priority enhancement
+    if len(exercise_sets) == 0:
+        return exercise_sets
+    return [max(exercise_sets, key=lambda es: es.reps)]
 
 
 def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: datetime.date):
@@ -730,7 +747,9 @@ def _get_weight_and_exercise_sets(exercise: str, sets_str: str, date_of_sets: da
     :param exercise:      example: 'bb bench'
     :param sets_str:      example: '10@65,~8@70,5+1@75,4,5@80,2x3@85,2x2,~1@90'
     :param date_of_sets:  example: 2025/05/27
-    :return:  all ExerciseSet objects that can be parsed from the inputs.
+    :return:  ExerciseSet objects that can be parsed from the inputs and
+        should be plotted. Not all sets are plotted: it's not ideal
+        to plot multiple ExerciseSets with same date and WT but diff reps.
     """
     exercise_sets = []
     sets_str_split = _split_sets_string(sets_str)
