@@ -269,6 +269,8 @@ class TabTrainingArcs(ttk.Frame):
             # Currently displays empty graph with weird axis ticks, probably not the behavior we want
             x, y, colors = [], [], []
         else:
+            # TODO #26 some additional filtering should be done so the app doesn't
+            #  plot unnecessary sets. 2x6,8 -> should only plot the 8.
             x = [s.date for s in list_sets]
             y = [s.weight for s in list_sets]
             colors = [s.reps for s in list_sets]
@@ -356,11 +358,12 @@ class TabTrainingArcs(ttk.Frame):
 
         # Display new results
         for idx, arc in enumerate(arcs):
-            logger.info(f"\nARC {idx}")
+            arc_str = arc.get_length_string()
+            logger.info(f"\nARC {idx} ({arc_str})")
 
             # Create a frame to store a label, a subframe (with two plots), and a Tksheet.
             new_frm = ttk.Frame(self.frm_results)
-            new_lbl = ttk.Label(new_frm, text=f"ARC {idx}")
+            new_lbl = ttk.Label(new_frm, text=f"ARC {idx} ({arc_str})")
             new_sub_frm = self.create_frame_for_plots(new_frm, arc)
             new_sheet = create_arc_sheet(new_frm, arc)
 
